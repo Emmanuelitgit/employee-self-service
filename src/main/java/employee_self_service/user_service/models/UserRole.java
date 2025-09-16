@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "user_role_tbl")
+@Table(name = "user_role_tbl", schema = "user_schema")
 @Data
 @Builder
 @NoArgsConstructor

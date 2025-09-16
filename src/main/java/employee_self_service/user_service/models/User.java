@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "user_tbl")
+@Table(name = "user_tbl", schema = "user_schema")
 public class User extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,4 +23,7 @@ public class User extends AuditorData {
     private String phone;
     private String username;
     private String password;
+    private UUID departmentId;
+    private UUID companyId;
+    private UUID managerId;
 }

@@ -2,13 +2,11 @@ package employee_self_service.user_service.models;
 
 import employee_self_service.config.AuditorData;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -16,11 +14,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-@Table(name = "role_setup_tbl", schema = "user_schema")
-public class RoleSetup extends AuditorData {
-    @Id
+@Table(name = "company_setup_tbl", schema = "user_schema")
+public class Company extends AuditorData {
+    @jakarta.persistence.Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-    @NotNull(message = "role name cannot be null")
+    private UUID Id;
     private String name;
 }

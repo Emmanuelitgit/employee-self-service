@@ -157,17 +157,21 @@ public class KeycloakService {
      */
     private void assignRole(String userId, UUID roleId){
 
-        // Fetch the role by name from keycloak
+        /**
+         * Fetch the role by name from keycloak
+         */
         RoleRepresentation role = realmInstance.roles().get(getRoleName(roleId)).toRepresentation();
 
         /**
          * Assign role to user
          */
-        realmInstance.users()
-                .get(userId)
-                .roles()
-                .realmLevel()
-                .add(List.of(role));
+        if (role!=null){
+            realmInstance.users()
+                    .get(userId)
+                    .roles()
+                    .realmLevel()
+                    .add(List.of(role));
+        }
 
         log.info("Assigned role {} to user {}", role.getName(), userId);
     }
