@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -31,4 +32,10 @@ public class UserPayloadDTO {
     private String username;
     @NotNull(message = "Role id cannot be null")
     private UUID role;
+    @NotEmpty(message = "Departments cannot be empty")
+    private List<UUID> departments;
+    @NotEmpty(message = "Companies cannot be empty")
+    private List<UUID> companies;
+    @NotBlank(message = "Manager id cannot null or empty")
+    private UUID managerId;
 }

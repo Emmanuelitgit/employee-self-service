@@ -23,7 +23,5 @@ public class User extends AuditorData {
     private String phone;
     private String username;
     private String password;
-    private UUID departmentId;
-    private UUID companyId;
     private UUID managerId;
 }

@@ -32,7 +32,7 @@ public class KeycloakService {
     @Autowired
     public KeycloakService(KeycloakConfig keycloakConfig, RoleSetupRepo roleSetupRepo) {
         this.keycloakConfig = keycloakConfig;
-        this.realmInstance = keycloakConfig.getInstance().realm("travelManagement");
+        this.realmInstance = keycloakConfig.getInstance().realm("ESS");
         this.roleSetupRepo = roleSetupRepo;
     }
 
