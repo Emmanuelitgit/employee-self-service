@@ -22,10 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.exact;
@@ -152,11 +149,7 @@ public class AppUtils {
      * @createdAt 19h May 2025
      */
     public String getAuthenticatedUsername(){
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        User user = userRepo.findById(UUID.fromString(userId))
-                .orElseThrow(()-> new NotFoundException("user record not found"));
-        return user.getUsername();
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
     /**
@@ -165,8 +158,10 @@ public class AppUtils {
      * @auther Emmanuel Yidana
      * @createdAt 19h May 2025
      */
-    public static String getAuthenticatedUserId(){
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+    public String getAuthenticatedUserId(){
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID userId = userRepo.getUserId(username);
+        return userId.toString();
     }
 
     public static final ExampleMatcher SEARCH_CONDITION_MATCH_ALL = ExampleMatcher.matchingAll()
