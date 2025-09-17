@@ -3,6 +3,7 @@ package employee_self_service.user_service.rest;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.models.RoleSetup;
 import employee_self_service.user_service.serviceImpl.RoleSetupServiceImpl;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = "Role Management")
 @RestController
 @RequestMapping("/api/v1/role-setups")
 public class RoleSetupRest {
