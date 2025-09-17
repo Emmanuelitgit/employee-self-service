@@ -18,4 +18,6 @@ public class Company extends AuditorData {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID Id;
     private String name;
+    private UUID generalManagerId;
+    private UUID HRId;
 }
