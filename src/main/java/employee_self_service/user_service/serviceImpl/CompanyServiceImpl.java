@@ -8,6 +8,7 @@ import employee_self_service.util.AppUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class CompanyServiceImpl implements CompanyService {
         this.companyRepo = companyRepo;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> createCompany(Company company) {
         try {
@@ -50,6 +52,7 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getCompanies() {
        try {
@@ -105,6 +108,7 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> updateCompany(Company company, UUID companyId) {
         try {
@@ -140,6 +144,7 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> removeCompany(UUID companyId) {
         try {

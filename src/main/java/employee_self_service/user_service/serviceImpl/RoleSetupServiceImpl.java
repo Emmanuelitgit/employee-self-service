@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
@@ -39,6 +40,7 @@ public class RoleSetupServiceImpl implements RoleSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> saveRole(RoleSetup roleSetup) {
@@ -76,6 +78,7 @@ public class RoleSetupServiceImpl implements RoleSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> updateRole(RoleSetup roleSetup, UUID roleId) {
@@ -144,6 +147,7 @@ public class RoleSetupServiceImpl implements RoleSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> deleteRole(UUID roleId) {
        try {
@@ -176,6 +180,7 @@ public class RoleSetupServiceImpl implements RoleSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getRoles() {
         try{

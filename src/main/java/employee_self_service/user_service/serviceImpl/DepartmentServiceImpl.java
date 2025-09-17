@@ -8,6 +8,7 @@ import employee_self_service.util.AppUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         this.departmentRepo = departmentRepo;
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> createDepartment(Department department) {
         try {
@@ -51,6 +53,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getDepartments() {
         try {
@@ -108,6 +111,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> updateDepartment(Department department, UUID departmentId) {
         try {
@@ -144,6 +148,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> removeDepartment(UUID departmentId) {
         try {

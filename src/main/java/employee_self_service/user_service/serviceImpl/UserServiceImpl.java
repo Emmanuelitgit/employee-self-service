@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,7 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> createUser(UserPayloadDTO userPayloadDTO) {
@@ -133,6 +135,7 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getUsers() {
        try{
@@ -199,6 +202,7 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 27h April 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> updateUser(UserPayloadDTO userPayload, UUID userId) {
@@ -263,6 +267,7 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 16th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> removeUser(UUID userId) {
