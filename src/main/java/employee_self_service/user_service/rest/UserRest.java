@@ -1,6 +1,7 @@
 package employee_self_service.user_service.rest;
 
 import employee_self_service.user_service.dto.ResponseDTO;
+import employee_self_service.user_service.dto.UpdateUserPayload;
 import employee_self_service.user_service.dto.UserPayloadDTO;
 import employee_self_service.user_service.serviceImpl.UserServiceImpl;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +40,7 @@ public class UserRest {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<ResponseDTO> updateUser(@RequestBody @Valid UserPayloadDTO user, @PathVariable UUID userId){
+    public ResponseEntity<ResponseDTO> updateUser(@RequestBody @Valid UpdateUserPayload user, @PathVariable UUID userId){
         return userService.updateUser(user, userId);
     }
 

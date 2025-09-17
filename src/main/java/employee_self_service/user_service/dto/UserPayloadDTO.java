@@ -38,4 +38,5 @@ public class UserPayloadDTO {
     private List<UUID> companies;
     @NotBlank(message = "Manager id cannot null or empty")
     private UUID managerId;
+    private List<UUID> permissions;
 }

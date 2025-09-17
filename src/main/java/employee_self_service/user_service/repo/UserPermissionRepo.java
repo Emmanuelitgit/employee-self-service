@@ -1,0 +1,13 @@
+package employee_self_service.user_service.repo;
+
+import employee_self_service.user_service.models.UserPermission;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface UserPermissionRepo extends JpaRepository<UserPermission, UUID> {
+    Optional<UserPermission> findByUserId(UUID userId);
+}

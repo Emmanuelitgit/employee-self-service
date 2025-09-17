@@ -41,7 +41,9 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * save and return response
              */
+            log.info("About to save department record");
             Department departmentRes = departmentRepo.save(department);
+            log.info("Department record saved successfully:->>{}", departmentRes);
             responseDTO = AppUtils.getResponseDto("Department added", HttpStatus.CREATED, departmentRes);
             return new ResponseEntity<>(responseDTO, HttpStatus.CREATED);
 
@@ -62,6 +64,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * loading data from db
              */
+            log.info("About to fetch departments from db");
             List<Department> departments = departmentRepo.findAll();
             if (departments.isEmpty()) {
                 responseDTO = AppUtils.getResponseDto("No department record found", HttpStatus.NOT_FOUND);
@@ -71,6 +74,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * return response on success
              */
+            log.info("Departments fetched successfully");
             responseDTO = AppUtils.getResponseDto("Departments", HttpStatus.OK, departments);
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
@@ -90,6 +94,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * loading data from db
              */
+            log.info("About load department record from db");
             Optional<Department> departmentOptional = departmentRepo.findById(departmentId);
             if (departmentOptional.isEmpty()) {
                 log.error("Department record not found:->>>{}", departmentId);
@@ -100,6 +105,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * return response on success
              */
+            log.info("Department record fetched from db successfully");
             responseDTO = AppUtils.getResponseDto("Department record", HttpStatus.OK, departmentOptional.get());
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
@@ -120,6 +126,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * loading data from db
              */
+            log.info("About to load existing department record from db");
             Optional<Department> departmentOptional = departmentRepo.findById(departmentId);
             if (departmentOptional.isEmpty()) {
                 log.error("Department record not found:->>>{}", departmentId);
@@ -129,6 +136,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * save updated record
              */
+            log.info("About to save updated record");
             Department existingDepartment = departmentOptional.get();
             existingDepartment.setName(department.getName() != null ? department.getName() : existingDepartment.getName());
             Department departmentRes = departmentRepo.save(existingDepartment);
@@ -157,6 +165,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * loading data from db
              */
+            log.info("About to load department record from db");
             Optional<Department> departmentOptional = departmentRepo.findById(departmentId);
             if (departmentOptional.isEmpty()) {
                 log.error("Department record not found:->>>{}", departmentId);
@@ -167,6 +176,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             /**
              * delete record
              */
+            log.info("About to delete department record");
             departmentRepo.deleteById(departmentId);
             /**
              * return response on success

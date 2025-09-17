@@ -41,7 +41,9 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * save and return response
              */
+            log.info("About to save company");
             Company companyRes = companyRepo.save(company);
+            log.info("Company saved successfully");
             responseDTO = AppUtils.getResponseDto("Company added", HttpStatus.CREATED, companyRes);
             return new ResponseEntity<>(responseDTO, HttpStatus.CREATED);
 
@@ -61,6 +63,7 @@ public class CompanyServiceImpl implements CompanyService {
            /**
             * loading data from db
             */
+           log.info("About to fetch companies from db");
            List<Company> companies = companyRepo.findAll();
            if (companies.isEmpty()){
                responseDTO = AppUtils.getResponseDto("No company record found", HttpStatus.NOT_FOUND);
@@ -70,6 +73,7 @@ public class CompanyServiceImpl implements CompanyService {
            /**
             * return response on success
             */
+           log.info("Companies fetched from db successfully");
            responseDTO = AppUtils.getResponseDto("Companies", HttpStatus.OK, companies);
            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
@@ -88,6 +92,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * loading data from db
              */
+            log.info("About to load company record from db");
             Optional<Company> companyOptional = companyRepo.findById(companyId);
             if (companyOptional.isEmpty()){
                 log.error("Company record not found:->>>{}", companyId);
@@ -98,6 +103,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * return response on success
              */
+            log.info("Company record fetched successfully");
             responseDTO = AppUtils.getResponseDto("Company record", HttpStatus.OK, companyOptional.get());
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
@@ -117,6 +123,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * loading data from db
              */
+            log.info("About to load existing company record");
             Optional<Company> companyOptional = companyRepo.findById(companyId);
             if (companyOptional.isEmpty()){
                 log.error("Company record not found:->>>{}", companyId);
@@ -126,6 +133,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * save updated record
              */
+            log.info("About to save updated record");
             Company existingCompany = companyOptional.get();
             existingCompany.setName(company.getName()!=null?company.getName(): existingCompany.getName());
             Company companyRes = companyRepo.save(company);
@@ -153,6 +161,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * loading data from db
              */
+            log.info("About to load company record from db");
             Optional<Company> companyOptional = companyRepo.findById(companyId);
             if (companyOptional.isEmpty()){
                 log.error("Company record not found:->>>{}", companyId);
@@ -163,6 +172,7 @@ public class CompanyServiceImpl implements CompanyService {
             /**
              * delete record
              */
+            log.info("About to delete company record");
             companyRepo.deleteById(companyId);
             /**
              * return response on success

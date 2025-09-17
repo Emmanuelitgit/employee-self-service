@@ -45,24 +45,30 @@ public class RoleSetupServiceImpl implements RoleSetupService {
     @Override
     public ResponseEntity<ResponseDTO> saveRole(RoleSetup roleSetup) {
       try {
+          log.info("In create role record method");
+          ResponseDTO responseDTO;
           /**
            * validating payload
            */
           if (roleSetup == null){
-              ResponseDTO  response = AppUtils.getResponseDto("payload cannot be null", HttpStatus.BAD_REQUEST);
-              return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+              log.error("Role payload is null:->>");
+              responseDTO = AppUtils.getResponseDto("Payload cannot be null", HttpStatus.BAD_REQUEST);
+              return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
           }
           /**
            * saving record to db and keycloak
            */
+          log.info("About to save role to db");
           RoleSetup roleSetupRes = roleSetupRepo.save(roleSetup);
+          log.info("About to save role to keycloak");
           keycloakService.saveRoleToKeycloak(roleSetup);
 
           /**
            * return response on success
            */
-          ResponseDTO  response = AppUtils.getResponseDto("role record added successfully", HttpStatus.CREATED, roleSetupRes);
-          return new ResponseEntity<>(response, HttpStatus.CREATED);
+          log.info("Role record saved successfully");
+          responseDTO = AppUtils.getResponseDto("role record added successfully", HttpStatus.CREATED, roleSetupRes);
+          return new ResponseEntity<>(responseDTO, HttpStatus.CREATED);
 
       }catch (Exception e) {
           log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
@@ -83,22 +89,34 @@ public class RoleSetupServiceImpl implements RoleSetupService {
     @Override
     public ResponseEntity<ResponseDTO> updateRole(RoleSetup roleSetup, UUID roleId) {
         try {
+            log.info("In update role record method:->>{}", roleSetupRepo);
+            ResponseDTO responseDTO;
             /**
              * check if role exist
              */
-            RoleSetup existingRoleSetup = roleSetupRepo.findById(roleId)
-                    .orElseThrow(()-> new NotFoundException("role setup record not found"));
+            log.info("About to load existing role record from db");
+            Optional<RoleSetup> roleSetupOptional = roleSetupRepo.findById(roleId);
+            if (roleSetupOptional.isEmpty()){
+                log.error("Role record not found:->>{}", roleId);
+                responseDTO = AppUtils.getResponseDto("Role record not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+            }
+            RoleSetup existingRoleSetup = roleSetupOptional.get();
 
             /**
              * saving record
              */
+            log.info("About to update role record in keycloak");
             existingRoleSetup.setName(roleSetup.getName() != null? roleSetup.getName():existingRoleSetup.getName());
+            RoleSetup res = roleSetupRepo.save(existingRoleSetup);
+            log.info("About to update role in keycloak");
             keycloakService.updateRole(existingRoleSetup.getName(), roleSetup.getName());
             /**
              * return response on success
              */
-            ResponseDTO  response = AppUtils.getResponseDto("role records updated successfully", HttpStatus.OK, roleSetup);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            log.info("Role record updated successfully:->>{}", res);
+            responseDTO = AppUtils.getResponseDto("role records updated successfully", HttpStatus.OK, roleSetup);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         }catch (Exception e) {
             log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
@@ -118,20 +136,25 @@ public class RoleSetupServiceImpl implements RoleSetupService {
     @Override
     public ResponseEntity<ResponseDTO> findRoleById(UUID roleId) {
         try {
+            log.info("In fetch role by id method");
+            ResponseDTO responseDTO;
             /**
              * check if record exist
              */
+            log.info("About to load role record from db");
             Optional<RoleSetup> roleSetupOptional = roleSetupRepo.findById(roleId);
             if (roleSetupOptional.isEmpty()){
-                ResponseDTO  response = AppUtils.getResponseDto("role record not found", HttpStatus.NOT_FOUND);
-                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                log.error("Role record not found:->>{}", roleId);
+                responseDTO = AppUtils.getResponseDto("Role record not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
             /**
              * return response on success
              */
+            log.info("Role record fetched successfully:->>{}", roleSetupOptional.get());
             RoleSetup roleSetup = roleSetupOptional.get();
-            ResponseDTO  response = AppUtils.getResponseDto("role records fetched successfully", HttpStatus.OK, roleSetup);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            responseDTO = AppUtils.getResponseDto("role records fetched successfully", HttpStatus.OK, roleSetup);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         }catch (Exception e) {
             log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
@@ -151,21 +174,31 @@ public class RoleSetupServiceImpl implements RoleSetupService {
     @Override
     public ResponseEntity<ResponseDTO> deleteRole(UUID roleId) {
        try {
+           log.info("In deleted role record method:->>{}", roleId);
+           ResponseDTO responseDTO;
            /**
             * check if record exist
             */
-           RoleSetup roleSetup = roleSetupRepo.findById(roleId)
-                   .orElseThrow(()-> new NotFoundException("role setup record not found"));
+           Optional<RoleSetup> roleSetupOptional = roleSetupRepo.findById(roleId);
+           if (roleSetupOptional.isEmpty()) {
+               log.error("Role record not found:->>{}", roleId);
+               responseDTO = AppUtils.getResponseDto("Role record not found", HttpStatus.NOT_FOUND);
+               return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+           }
+           RoleSetup roleSetup = roleSetupOptional.get();
            /**
             * delete record from db and keycloak
             */
+           log.info("About to delete role record from db");
            roleSetupRepo.deleteById(roleSetup.getId());
+           log.info("About to delete role record from keycloak");
            keycloakService.removeRoleFromKeycloak(roleSetup.getName());
            /**
             * return response on success
             */
-           ResponseDTO  response = AppUtils.getResponseDto("role records deleted successfully", HttpStatus.OK);
-           return new ResponseEntity<>(response, HttpStatus.OK);
+           log.info("Role record deleted successfully");
+           responseDTO = AppUtils.getResponseDto("role records deleted successfully", HttpStatus.OK);
+           return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
        }catch (Exception e) {
            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
@@ -184,19 +217,24 @@ public class RoleSetupServiceImpl implements RoleSetupService {
     @Override
     public ResponseEntity<ResponseDTO> getRoles() {
         try{
+            log.info("In fetch roles method");
+            ResponseDTO responseDTO;
             /**
              * retrieving all records
              */
+            log.info("About to load roles from db");
             List<RoleSetup> roleSetups = roleSetupRepo.findAll();
             if (roleSetups.isEmpty()){
-                ResponseDTO  response = AppUtils.getResponseDto("no role record found", HttpStatus.NOT_FOUND);
-                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                log.error("No role record found");
+                responseDTO = AppUtils.getResponseDto("No role record found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
             /**
              * return response on success
              */
-            ResponseDTO  response = AppUtils.getResponseDto("roles records fetched successfully", HttpStatus.OK, roleSetups);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            log.info("Roles fetched successfully");
+            responseDTO = AppUtils.getResponseDto("Roles records fetched successfully", HttpStatus.OK, roleSetups);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         } catch (Exception e) {
             log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());

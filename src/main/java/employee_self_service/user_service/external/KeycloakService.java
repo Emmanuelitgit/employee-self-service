@@ -1,5 +1,6 @@
 package employee_self_service.user_service.external;
 
+import employee_self_service.user_service.dto.UpdateUserPayload;
 import employee_self_service.user_service.dto.UserPayloadDTO;
 import employee_self_service.user_service.exception.BadRequestException;
 import employee_self_service.user_service.exception.NotFoundException;
@@ -90,7 +91,7 @@ public class KeycloakService {
      * @auther Emmanuel Yidana
      * @createdAt 27h May 2025
      */
-    public void updateUserInKeycloak(UserPayloadDTO userDto) {
+    public void updateUserInKeycloak(UpdateUserPayload userDto) {
         /**
          * Fetch the existing user
          * Search keycloak by user email to get user keycloak id

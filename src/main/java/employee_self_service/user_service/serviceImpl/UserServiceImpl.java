@@ -35,9 +35,11 @@ public class UserServiceImpl implements UserService {
     private final UserDepartmentRepo userDepartmentRepo;
     private final UserCompanyRepo userCompanyRepo;
     private final CompanyRepo companyRepo;
+    private final PermissionSetupRepo permissionSetupRepo;
+    private final UserPermissionRepo userPermissionRepo;
 
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo) {
+    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo, PermissionSetupRepo permissionSetupRepo, UserPermissionRepo userPermissionRepo) {
         this.userRepo = userRepo;
         this.dtoMapper = dtoMapper;
         this.passwordEncoder = passwordEncoder;
@@ -49,6 +51,8 @@ public class UserServiceImpl implements UserService {
         this.userDepartmentRepo = userDepartmentRepo;
         this.userCompanyRepo = userCompanyRepo;
         this.companyRepo = companyRepo;
+        this.permissionSetupRepo = permissionSetupRepo;
+        this.userPermissionRepo = userPermissionRepo;
     }
 
     /**
@@ -93,23 +97,26 @@ public class UserServiceImpl implements UserService {
            /**
             * saving user to db
             */
+           log.info("About to save user to db");
            userPayloadDTO.setPassword(passwordEncoder.encode(userPayloadDTO.getPassword()));
            User user = dtoMapper.toUserEntity(userPayloadDTO);
            User userResponse = userRepo.save(user);
-
            /**
             * saving user role, user departments and user companies
             */
+           log.info("About to save user role");
            saveUserRole(userResponse.getId(), userPayloadDTO.getRole());
+           log.info("About to save user permissions");
+           saveUserPermission(userResponse.getId(),userPayloadDTO.getPermissions());
+           log.info("About to save user companies");
            saveUserCompanies(userPayloadDTO.getCompanies(), userResponse.getId());
+           log.info("About to save user departments");
            saveUserDepartments(userPayloadDTO.getDepartments(), userResponse.getId());
-
-           log.info("User added to db successfully");
-
+           /**
+            * saving user in keycloak
+            */
            log.info("About to save user in keycloak");
            keycloakService.saveUserToKeycloak(userPayloadDTO);
-           log.info("User saved to keycloak successfully");
-
            /**
             * return response on success
             */
@@ -119,7 +126,8 @@ public class UserServiceImpl implements UserService {
                        .orElseThrow(()->new NotFoundException("Role record not found")).getName();
            }
            UserDTO userDTO = DTOMapper.toUserDTO(userResponse, roleName);
-           ResponseDTO  response = AppUtils.getResponseDto("user record added successfully", HttpStatus.CREATED, userDTO);
+           log.info("User created successfully:->>{}", userResponse);
+           ResponseDTO  response = AppUtils.getResponseDto("User record added successfully", HttpStatus.CREATED, userDTO);
            return new ResponseEntity<>(response, HttpStatus.CREATED);
 
        } catch (Exception e) {
@@ -144,15 +152,18 @@ public class UserServiceImpl implements UserService {
            /**
             * fetching all users from db
             */
+           log.info("About to fetch users from db");
            List<UserDTOProjection> users = userRepo.getUsersDetails();
            if (users.isEmpty()){
-               ResponseDTO  response = AppUtils.getResponseDto("no user record found", HttpStatus.NOT_FOUND);
+               log.error("No user record found");
+               ResponseDTO  response = AppUtils.getResponseDto("No user record found", HttpStatus.NOT_FOUND);
                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
            }
            /**
             * return response on success
             */
-           ResponseDTO  response = AppUtils.getResponseDto("users records fetched successfully", HttpStatus.OK, users);
+           log.info("Users fetched successfully");
+           ResponseDTO  response = AppUtils.getResponseDto("Users records fetched successfully", HttpStatus.OK, users);
            return new ResponseEntity<>(response, HttpStatus.OK);
 
        } catch (Exception e) {
@@ -176,6 +187,7 @@ public class UserServiceImpl implements UserService {
            /**
             * retrieving user record from db
             */
+           log.info("About to load user record from db");
            UserDTOProjection user = userRepo.getUsersDetailsByUserId(userId);
            if (user == null){
                log.error("User record not found:->>{}", userId);
@@ -185,7 +197,8 @@ public class UserServiceImpl implements UserService {
            /**
             * return response on success
             */
-           ResponseDTO  response = AppUtils.getResponseDto("user records fetched successfully", HttpStatus.OK, user);
+           log.info("User records fetched successfully:->>{}", user);
+           ResponseDTO  response = AppUtils.getResponseDto("User records fetched successfully", HttpStatus.OK, user);
            return new ResponseEntity<>(response, HttpStatus.OK);
 
        } catch (Exception e) {
@@ -205,12 +218,13 @@ public class UserServiceImpl implements UserService {
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
-    public ResponseEntity<ResponseDTO> updateUser(UserPayloadDTO userPayload, UUID userId) {
+    public ResponseEntity<ResponseDTO> updateUser(UpdateUserPayload userPayload, UUID userId) {
         try{
-            log.info("In update user method:->>>{}", userPayload);
+            log.info("In update user method:->>{}", userPayload);
             /**
              * check if user exist
              */
+            log.info("About to load user records from db");
             Optional<User> userOptional = userRepo.findById(userId);
             if (userOptional.isEmpty()){
                 log.error("User record not found:->>{}", userId);
@@ -221,26 +235,32 @@ public class UserServiceImpl implements UserService {
             /**
              * update fields and save
              */
+            log.info("About to update user records in db");
             User existingData = userOptional.get();
             existingData.setEmail(userPayload.getEmail() !=null ? userPayload.getEmail() : existingData.getEmail());
             existingData.setFirstName(userPayload.getFirstName() !=null ? userPayload.getFirstName() : existingData.getFirstName());
             existingData.setLastName(userPayload.getLastName() !=null ? userPayload.getLastName() : existingData.getLastName());
             existingData.setUsername(userPayload.getUsername() !=null ? userPayload.getUsername() : existingData.getUsername());
             existingData.setPhone(userPayload.getPhone() !=null ? userPayload.getPhone() : existingData.getPhone());
+            existingData.setManagerId(userPayload.getManagerId()!=null?userPayload.getManagerId() : existingData.getManagerId());
             User userResponse = userRepo.save(existingData);
 
             /**
              * saving user role, user departments and user companies
              */
+            log.info("About to update user role");
             saveUserRole(userResponse.getId(), userPayload.getRole());
+            log.info("About to update user permissions");
+            saveUserPermission(userResponse.getId(),userPayload.getPermissions());
+            log.info("About to save update companies");
             saveUserCompanies(userPayload.getCompanies(), userResponse.getId());
+            log.info("About to update user departments");
             saveUserDepartments(userPayload.getDepartments(), userResponse.getId());
             /**
              * update user in keycloak
              */
+            log.info("About to update user in keycloak");
             keycloakService.updateUserInKeycloak(userPayload);
-
-            log.info("user updated successfully:->>>{}", userResponse);
             /**
              * return response on success
              */
@@ -250,6 +270,7 @@ public class UserServiceImpl implements UserService {
                         .orElseThrow(()->new NotFoundException("Role record not found")).getName();
             }
             UserDTO userDTOResponse = DTOMapper.toUserDTO(userResponse, roleName);
+            log.info("User updated successfully:->>{}", userResponse);
             ResponseDTO  response = AppUtils.getResponseDto("User records updated successfully", HttpStatus.OK, userDTOResponse);
             return new ResponseEntity<>(response, HttpStatus.OK);
 
@@ -276,6 +297,7 @@ public class UserServiceImpl implements UserService {
             /**
              * check if user exist by id
              */
+            log.info("About to load user records from db");
             Optional<User> userOptional = userRepo.findById(userId);
             if (userOptional.isEmpty()){
                 log.error("User record not found:->>{}", userId);
@@ -285,16 +307,19 @@ public class UserServiceImpl implements UserService {
             /**
              * delete user record
              */
-            log.info("About to remove user records");
+            log.info("About to remove user departments");
             userDepartmentRepo.deleteByUserId(userId);
+            log.info("About to remove user companies");
             userCompanyRepo.deleteByUserId(userId);
+            log.info("About to remove user from db");
             userRepo.deleteById(userId);
+            log.info("About to remove user from keycloak");
             keycloakService.removeUserFromKeyCloak(userOptional.get().getEmail());
-            log.info("User removed successfully");
 
             /**
              * return response on success
              */
+            log.info("User removed successfully");
             ResponseDTO  response = AppUtils.getResponseDto("user record removed successfully", HttpStatus.OK);
             return new ResponseEntity<>(response, HttpStatus.OK);
 
@@ -349,7 +374,6 @@ public class UserServiceImpl implements UserService {
      * @param userId The id of the user
      */
     private void saveUserCompanies(List<UUID> companiesIds, UUID userId){
-
         /**
          * remove all companies associated with the user if exist
          */
@@ -383,7 +407,7 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * @description A helper method used tom save use role
+     * @description A helper method used tom save user role
      * @param userId The id of the user
      * @param roleId The id of the role to be assigned to user
      */
@@ -412,5 +436,38 @@ public class UserServiceImpl implements UserService {
                 .userId(userId)
                 .build();
         userRoleRepo.save(userRole);
+    }
+
+    /**
+     * @description A helper method used tom save user role
+     * @param userId The id of the user
+     * @param permissionIds The ids of the permissions to be assigned to user
+     */
+    private void saveUserPermission(UUID userId, List<UUID> permissionIds) {
+        /**
+         * delete all existing permissions of the user
+         */
+        Optional<UserPermission> userPermissionOptional = userPermissionRepo.findByUserId(userId);
+        userPermissionOptional.ifPresent((perm)->userPermissionRepo.deleteById(perm.getUserId()));
+
+        permissionIds.forEach((perm)->{
+            /**
+             * check if permission exist
+             */
+            Optional<PermissionSetup> permissionSetup = permissionSetupRepo.findById(perm);
+            if (permissionSetup.isEmpty()){
+                log.error("Permission record not found:->>{}", perm);
+                throw new NotFoundException("Permission record not found");
+            }
+            /**
+             * saving record
+             */
+            UserPermission userPermission = UserPermission
+                    .builder()
+                    .permissionId(perm)
+                    .userId(userId)
+                    .build();
+            userPermissionRepo.save(userPermission);
+        });
     }
 }
