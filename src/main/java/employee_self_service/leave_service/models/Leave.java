@@ -2,14 +2,14 @@ package employee_self_service.leave_service.models;
 
 import employee_self_service.config.AuditorData;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
 @Builder
@@ -20,10 +20,19 @@ public class Leave extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+    @Column(nullable = false, name = "user_id")
     private UUID userId;
-    private Integer leaveDays;
+    @Column(nullable = false, name = "leave_days")
+    private Long leaveDays;
+    @Column(nullable = false, name = "start_date")
+    @NotNull(message = "Leave start date cannot be null")
     private LocalDateTime startDate;
+    @Column(nullable = false, name = "end_date")
+    @NotNull(message = "Leave end date cannot be null")
     private LocalDateTime endDate;
+    @Column(nullable = false, name = "status")
     private String status;
+    @Column(nullable = false, name = "leave_type")
+    @NotBlank(message = "Leave type cannot be null or empty")
     private String leaveType;//annual leave, maternal leave, sick leave
 }

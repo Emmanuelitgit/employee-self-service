@@ -10,4 +10,8 @@ public interface AppConstants {
     public final String APPROVED = "APPROVED";
     public final String REJECTED = "REJECTED";
     public final String CANCELLED = "CANCELLED";
+    public final String PENDING = "PENDING";
+    public final String ANNUAL_LEAVE = "ANNUAL_LEAVE";
+    public final String MATERNAL_LEAVE = "MATERNAL_LEAVE";
+    public final String SICK_LEAVE = "SICK_LEAVE";
 }
