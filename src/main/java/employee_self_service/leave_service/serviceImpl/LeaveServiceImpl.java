@@ -60,7 +60,7 @@ public class LeaveServiceImpl implements LeaveService {
             Long leaveCount = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate());
             leave.setUserId(userId);
             leave.setLeaveDays(leaveCount);
-            leave.setStatus(AppConstants.PENDING);
+            leave.setStatus(AppConstants.PENDING_MANAGER_APPROVAL);
             Leave res = leaveRepo.save(leave);
 
             /**
