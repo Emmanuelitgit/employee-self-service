@@ -35,4 +35,6 @@ public class Leave extends AuditorData {
     @Column(nullable = false, name = "leave_type")
     @NotBlank(message = "Leave type cannot be null or empty")
     private String leaveType;//annual leave, maternal leave, sick leave
+    @Column(name = "manager_id", nullable = false)
+    private UUID managerId;
 }

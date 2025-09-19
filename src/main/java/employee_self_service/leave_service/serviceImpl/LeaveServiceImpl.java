@@ -1,10 +1,12 @@
 package employee_self_service.leave_service.serviceImpl;
 
 import employee_self_service.leave_service.models.Leave;
+import employee_self_service.leave_service.models.UserLeaveBalance;
 import employee_self_service.leave_service.repo.LeaveRepo;
 import employee_self_service.leave_service.repo.UserLeaveBalanceRepo;
 import employee_self_service.leave_service.service.LeaveService;
 import employee_self_service.user_service.dto.ResponseDTO;
+import employee_self_service.user_service.exception.NotFoundException;
 import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -284,6 +287,13 @@ public class LeaveServiceImpl implements LeaveService {
             } else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.APPROVED);
+                /**
+                 * update leave balance only when type is annual leave
+                 * no deductions for sick and maternal leaves
+                 */
+                if (AppConstants.ANNUAL_LEAVE.equalsIgnoreCase(existingData.getLeaveType())){
+                    updateLeaveBalance(existingData.getUserId(), existingData.getLeaveDays());
+                }
             } else if (AppConstants.REJECTED.equalsIgnoreCase(status)) {
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.REJECTED);
@@ -296,7 +306,102 @@ public class LeaveServiceImpl implements LeaveService {
              * return response on success
              */
             log.info("Leave status updated successfully:->>{}", res);
-            responseDTO = AppUtils.getResponseDto("Leave status updated successfully", HttpStatus.OK);
+            responseDTO = AppUtils.getResponseDto("Leave status updated successfully", HttpStatus.OK, res);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @description This method is used to fetch leaves for logged-in user
+     * @return ResponseEntity containing the returned leaves and status info
+     */
+    @Override
+    public ResponseEntity<ResponseDTO> fetchLeavesForLoggedInUser() {
+        try {
+            log.info("In fetch leaves for logged-in user method");
+            ResponseDTO responseDTO;
+
+            /**
+             * load leaves from db by user id
+             */
+            log.info("About to load user leaves from db");
+            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            log.info("Fetching user id from principal:->>{}", userId);
+            List<Leave> leaves = leaveRepo.fetchLeavesForLoggedInUser(userId);
+            if (leaves.isEmpty()){
+                log.error("No leave record found for user:->>{}", userId);
+                responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+            }
+
+            /**
+             * return response on success
+             */
+            log.info("Leaves fetched successfully:->>{}", leaves);
+            responseDTO = AppUtils.getResponseDto("Leaves fetched successfully", HttpStatus.OK, leaves);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @description This method is used to fetch leaves for logged-in Manager/HR
+     * This only filter out leaves pending for their approval
+     * @return ResponseEntity containing the returned leaves and status info
+     */
+    @Override
+    public ResponseEntity<ResponseDTO> fetchLeavesForManagerAndHR() {
+        try {
+            log.info("In fetch leaves for manager and HR method");
+            ResponseDTO responseDTO;
+
+            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            log.info("Fetching user id from principal:->>{}", userId);
+
+            /**
+             * load leaves from db by user id and base on role
+             */
+            List<Leave> leaves = new ArrayList<>();
+            if (AppConstants.MANAGER_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())){
+                log.info("About to load leaves for manager");
+                List<Leave> leavesFromDB = leaveRepo.fetchLeavesForManager(userId);
+                leaves.addAll(leavesFromDB);
+                if (leaves.isEmpty()){
+                    log.error("No leave record found for user:->>{}", userId);
+                    responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
+                    return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+                }
+
+            } else if (AppConstants.HR_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())) {
+                log.info("About to load leaves for HR");
+                List<Leave> leavesFromDB = leaveRepo.fetchLeavesForHR(userId);
+                leaves.addAll(leavesFromDB);
+                if (leaves.isEmpty()){
+                    log.error("No leave record found for user:->>{}", userId);
+                    responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
+                    return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+                }
+
+            }else {
+                log.error("User not authorized to this feature");
+                responseDTO = AppUtils.getResponseDto("User not authorized to this feature", HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(responseDTO, HttpStatus.UNAUTHORIZED);
+            }
+
+            /**
+             * return response on success
+             */
+            log.info("Leaves fetched successfully:->>{}", leaves);
+            responseDTO = AppUtils.getResponseDto("Leaves fetched successfully", HttpStatus.OK, leaves);
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         }catch (Exception e) {
@@ -349,9 +454,26 @@ public class LeaveServiceImpl implements LeaveService {
     }
 
     /**
+     * @description a helper method used to update user leave balance on leave approval
+     * @param userId The id of user the leave belongs to
+     * @param leaveDays The new balance to be updated with
+     */
+    private void updateLeaveBalance(UUID userId, Long leaveDays){
+        Optional<UserLeaveBalance> leaveBalanceOptional = userLeaveBalanceRepo.findByUsrId(userId);
+        if (leaveBalanceOptional.isEmpty()){
+            log.error("User leave balance record not found:->>{}", userId);
+            throw new NotFoundException("User leave balance record not found");
+        }
+        UserLeaveBalance existingData = leaveBalanceOptional.get();
+        float newBalance = existingData.getLeaveBalance()-leaveDays;
+        existingData.setLeaveBalance(newBalance);
+        userLeaveBalanceRepo.save(existingData);
+    }
+
+    /**
      * A chron job method runs at every 6pm to calculate/update leave balances of all employees
      */
-    @Scheduled(cron = "0 0 18 * * ?")
+    @Scheduled(cron = "0 0 18 * * 1-5")
     private void calculateLeaveBalanceDaily(){
         log.info("About to run chron job");
         float balance =  (((float) 15 /365)*1);

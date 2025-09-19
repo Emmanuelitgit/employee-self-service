@@ -13,4 +13,5 @@ public interface UserService {
     ResponseEntity<ResponseDTO> getUserById(UUID userId);
     ResponseEntity<ResponseDTO> updateUser(UpdateUserPayload user, UUID userId);
     ResponseEntity<ResponseDTO> removeUser(UUID userId);
+    ResponseEntity<ResponseDTO> fetchEmployeesForManagerOrHROrGM();
 }

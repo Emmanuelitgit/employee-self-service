@@ -48,4 +48,9 @@ public class UserRest {
     public ResponseEntity<ResponseDTO> removeUser(@PathVariable UUID userId){
         return userService.removeUser(userId);
     }
+
+    @GetMapping("/employees")
+    public ResponseEntity<ResponseDTO> fetchEmployeesForManagerOrHROrGM(){
+        return userService.fetchEmployeesForManagerOrHROrGM();
+    }
 }

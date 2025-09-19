@@ -9,6 +9,7 @@ import employee_self_service.user_service.external.KeycloakService;
 import employee_self_service.user_service.models.*;
 import employee_self_service.user_service.repo.*;
 import employee_self_service.user_service.service.UserService;
+import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +41,10 @@ public class UserServiceImpl implements UserService {
     private final PermissionSetupRepo permissionSetupRepo;
     private final UserPermissionRepo userPermissionRepo;
     private final UserLeaveBalanceRepo userLeaveBalanceRepo;
+    private final AppUtils appUtils;
 
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo, PermissionSetupRepo permissionSetupRepo, UserPermissionRepo userPermissionRepo, UserLeaveBalanceRepo userLeaveBalanceRepo) {
+    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo, PermissionSetupRepo permissionSetupRepo, UserPermissionRepo userPermissionRepo, UserLeaveBalanceRepo userLeaveBalanceRepo, AppUtils appUtils) {
         this.userRepo = userRepo;
         this.dtoMapper = dtoMapper;
         this.passwordEncoder = passwordEncoder;
@@ -57,6 +59,7 @@ public class UserServiceImpl implements UserService {
         this.permissionSetupRepo = permissionSetupRepo;
         this.userPermissionRepo = userPermissionRepo;
         this.userLeaveBalanceRepo = userLeaveBalanceRepo;
+        this.appUtils = appUtils;
     }
 
     /**
@@ -223,7 +226,6 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 27h April 2025
      */
-    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Transactional
     @Override
     public ResponseEntity<ResponseDTO> updateUser(UpdateUserPayload userPayload, UUID userId) {
@@ -343,11 +345,73 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * @description This method is used to fetch employees who fall under the logged-in user
+     * @return ResponseEntity containing the employees list and status info
+     * @auther Emmanuel Yidana
+     * @createdAt 20 August 2025
+     */
+    @Override
+    public ResponseEntity<ResponseDTO> fetchEmployeesForManagerOrHROrGM() {
+        try{
+            log.info("In fetch employees for HR or Manager or GM");
+            ResponseDTO responseDTO;
+            String userRole = appUtils.getAuthenticatedUserRole();
+            log.info("Fetching user role from principal:->>{}", userRole);
+            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            log.info("Fetching user id from principal");
+
+            /**
+             * fetching employees base on logged-in user role
+             */
+            List<UserDTOProjection> employees = new ArrayList<>();
+            if (AppConstants.MANAGER_ROLE.equalsIgnoreCase(userRole)){
+                log.info("About to fetch employees for Manager");
+                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForManager(userId);
+                employees.addAll(employeesFromDb);
+            } else if (AppConstants.HR_ROLE.equalsIgnoreCase(userRole)) {
+                log.info("About to fetch employees for HR");
+                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForHR(userId);
+                employees.addAll(employeesFromDb);
+            } else if (AppConstants.GENERAL_MANAGER_ROLE.equalsIgnoreCase(userRole)) {
+                log.info("About to fetch employees for GM");
+                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForGM(userId);
+                employees.addAll(employeesFromDb);
+            }else {
+                log.error("User not authorized to this feature:->>{}", userRole);
+                ResponseDTO  response = AppUtils.getResponseDto("User not authorized to this feature", HttpStatus.OK);
+                return new ResponseEntity<>(response, HttpStatus.OK);
+            }
+
+            /**
+             * if no record found
+             */
+            if (employees.isEmpty()){
+                log.info("No employee record found");
+                ResponseDTO  response = AppUtils.getResponseDto("No employee record found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+            }
+
+            /**
+             * return response on success
+             */
+            log.info("Employees fetched successfully");
+            ResponseDTO  response = AppUtils.getResponseDto("Employees fetched successfully", HttpStatus.OK, employees);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * @description A helper method used to save user departments
      * @param departmentIds The ids of departments to be assigned to user
      * @param userId The id of the user
      */
-    private void saveUserDepartments(List<UUID> departmentIds, UUID userId){
+    @Transactional
+    protected void saveUserDepartments(List<UUID> departmentIds, UUID userId){
         /**
          * remove all departments associated with the user if exist
          */
@@ -385,7 +449,8 @@ public class UserServiceImpl implements UserService {
      * @param companiesIds The ids of companies to be assigned to user
      * @param userId The id of the user
      */
-    private void saveUserCompanies(List<UUID> companiesIds, UUID userId){
+    @Transactional
+    protected void saveUserCompanies(List<UUID> companiesIds, UUID userId){
         /**
          * remove all companies associated with the user if exist
          */
@@ -423,7 +488,8 @@ public class UserServiceImpl implements UserService {
      * @param userId The id of the user
      * @param roleId The id of the role to be assigned to user
      */
-    private void saveUserRole(UUID userId, UUID roleId) {
+    @Transactional
+    protected void saveUserRole(UUID userId, UUID roleId) {
         /**
          * checking if selected role exist
          */
@@ -455,7 +521,8 @@ public class UserServiceImpl implements UserService {
      * @param userId The id of the user
      * @param permissionIds The ids of the permissions to be assigned to user
      */
-    private void saveUserPermission(UUID userId, List<UUID> permissionIds) {
+    @Transactional
+    protected void saveUserPermission(UUID userId, List<UUID> permissionIds) {
         /**
          * delete all existing permissions of the user
          */

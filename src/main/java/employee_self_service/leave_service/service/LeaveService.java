@@ -14,4 +14,6 @@ public interface LeaveService {
     ResponseEntity<ResponseDTO> removeLeave(UUID leaveId);
     ResponseEntity<ResponseDTO> approveOrRejectLeave(UUID leaveId, String status);
     ResponseEntity<ResponseDTO> cancelLeave(UUID leaveId);
+    ResponseEntity<ResponseDTO> fetchLeavesForLoggedInUser();
+    ResponseEntity<ResponseDTO> fetchLeavesForManagerAndHR();
 }

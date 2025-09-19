@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 17th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> createPermission(PermissionSetup permissionSetup) {
         try {
@@ -70,6 +72,7 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 17th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getPermissions() {
         try {
@@ -105,6 +108,7 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
      * @return ResponseEntity containing the retrieved record and status info
      * @createdAt 17th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getPermissionById(UUID permissionId) {
         try {
@@ -144,6 +148,7 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
      * @auther Emmanuel Yidana
      * @createdAt 17 August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> updatePermission(PermissionSetup permissionSetup, UUID permissionId) {
         try {
@@ -182,6 +187,14 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
         }
     }
 
+    /**
+     * @description This method is used to delete permission record by id
+     * @param permissionId The id of the permission to be deleted
+     * @return ResponseEntity containing message and status info
+     * @auther Emmanuel Yidana
+     * @createdAt 17 August 2025
+     */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> removePermission(UUID permissionId) {
         try {
@@ -201,11 +214,11 @@ public class PermissionSetupServiceImpl implements PermissionSetupService {
             /**
              * delete remove
              */
-            log.info("About to delete permission record:->>{}", permissionId);
+            log.warn("About to delete permission record:->>{}", permissionId);
             permissionSetupRepo.deleteById(permissionId);
 
             /**
-             *
+             *return response on success
              */
             log.info("Permission record deleted successfully");
             responseDTO = AppUtils.getResponseDto("Permission record deleted", HttpStatus.OK);

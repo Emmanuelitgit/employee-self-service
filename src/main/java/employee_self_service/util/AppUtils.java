@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.contains;
 import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.exact;
@@ -152,6 +153,7 @@ public class AppUtils {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
+
     /**
      * This method is used to get authenticated user id.
      * @return UUID string
@@ -162,6 +164,22 @@ public class AppUtils {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         UUID userId = userRepo.getUserId(username);
         return userId.toString();
+    }
+
+    /**
+     * This method is used to get authenticated user role.
+     * @return role string
+     * @auther Emmanuel Yidana
+     * @createdAt 19h May 2025
+     */
+    public String getAuthenticatedUserRole(){
+        return SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .stream()
+                .findFirst()
+                .toString();
     }
 
     /**
