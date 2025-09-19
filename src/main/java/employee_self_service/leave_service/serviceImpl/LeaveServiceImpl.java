@@ -2,6 +2,7 @@ package employee_self_service.leave_service.serviceImpl;
 
 import employee_self_service.leave_service.models.Leave;
 import employee_self_service.leave_service.repo.LeaveRepo;
+import employee_self_service.leave_service.repo.UserLeaveBalanceRepo;
 import employee_self_service.leave_service.service.LeaveService;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.util.AppConstants;
@@ -10,13 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.sql.Time;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,11 +25,13 @@ import java.util.UUID;
 public class LeaveServiceImpl implements LeaveService {
     private final LeaveRepo leaveRepo;
     private final AppUtils appUtils;
+    private final UserLeaveBalanceRepo userLeaveBalanceRepo;
 
     @Autowired
-    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils) {
+    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils, UserLeaveBalanceRepo userLeaveBalanceRepo) {
         this.leaveRepo = leaveRepo;
         this.appUtils = appUtils;
+        this.userLeaveBalanceRepo = userLeaveBalanceRepo;
     }
 
     /**
@@ -262,7 +263,47 @@ public class LeaveServiceImpl implements LeaveService {
      */
     @Override
     public ResponseEntity<ResponseDTO> approveOrRejectLeave(UUID leaveId, String status) {
-        return null;
+        try{
+            log.info("In approval flow method:->>{}", status);
+            ResponseDTO responseDTO;
+
+            /**
+             * check if leave record exist
+             */
+            log.info("About to load leave record from db");
+            Optional<Leave> leaveOptional = leaveRepo.findById(leaveId);
+            if (leaveOptional.isEmpty()){
+                log.error("Leave record not found:->>{}", leaveId);
+                responseDTO = AppUtils.getResponseDto("Leave record not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+            }
+            Leave existingData = leaveOptional.get();
+            if (AppConstants.PENDING_HR_APPROVAL.equalsIgnoreCase(status)){
+                log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
+                existingData.setStatus(AppConstants.PENDING_HR_APPROVAL);
+            } else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
+                log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
+                existingData.setStatus(AppConstants.APPROVED);
+            } else if (AppConstants.REJECTED.equalsIgnoreCase(status)) {
+                log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
+                existingData.setStatus(AppConstants.REJECTED);
+            }else {
+                log.info("Status does not exist");
+            }
+            Leave res = leaveRepo.save(existingData);
+
+            /**
+             * return response on success
+             */
+            log.info("Leave status updated successfully:->>{}", res);
+            responseDTO = AppUtils.getResponseDto("Leave status updated successfully", HttpStatus.OK);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -274,6 +315,49 @@ public class LeaveServiceImpl implements LeaveService {
      */
     @Override
     public ResponseEntity<ResponseDTO> cancelLeave(UUID leaveId) {
-        return null;
+        try {
+            log.info("In cancel leave method:->>{}", leaveId);
+            ResponseDTO responseDTO;
+
+            /**
+             * check if leave record exist
+             */
+            log.info("About to load leave record from db");
+            Optional<Leave> leaveOptional = leaveRepo.findById(leaveId);
+            if (leaveOptional.isEmpty()){
+                log.error("Leave record not found:->>{}", leaveId);
+                responseDTO = AppUtils.getResponseDto("Leave record not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+            }
+            log.warn("About to cancel leave application");
+            Leave existingData = leaveOptional.get();
+            existingData.setStatus(AppConstants.CANCELLED);
+            Leave res = leaveRepo.save(existingData);
+
+            /**
+             * return response on success
+             */
+            log.info("Leave application cancelled successfully:->>{}", res);
+            responseDTO = AppUtils.getResponseDto("Leave status updated successfully", HttpStatus.OK);
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * A chron job method runs at every 6pm to calculate/update leave balances of all employees
+     */
+    @Scheduled(cron = "0 0 18 * * ?")
+    private void calculateLeaveBalanceDaily(){
+        log.info("About to run chron job");
+        float balance =  (((float) 15 /365)*1);
+        float roundedValue  = AppUtils.roundNumber(balance, 2);
+        log.info("About to update leave balance for the day");
+        userLeaveBalanceRepo.updateLeaveBalance(roundedValue);
+        log.info("Leave balances updated successfully for:->>{}", LocalDateTime.now());
     }
 }

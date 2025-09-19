@@ -15,7 +15,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "user_tbl", schema = "user_schema")
+@Table(name = "leave_tbl", schema = "user_schema")
 public class Leave extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

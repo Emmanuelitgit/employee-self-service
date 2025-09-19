@@ -21,4 +21,5 @@ public class UpdateUserPayload {
     private List<UUID> companies;
     private UUID managerId;
     private List<UUID> permissions;
+    private Float leaveBalance;
 }

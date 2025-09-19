@@ -1,6 +1,8 @@
 package employee_self_service.user_service.serviceImpl;
 
 
+import employee_self_service.leave_service.models.UserLeaveBalance;
+import employee_self_service.leave_service.repo.UserLeaveBalanceRepo;
 import employee_self_service.user_service.dto.*;
 import employee_self_service.user_service.exception.NotFoundException;
 import employee_self_service.user_service.external.KeycloakService;
@@ -37,9 +39,10 @@ public class UserServiceImpl implements UserService {
     private final CompanyRepo companyRepo;
     private final PermissionSetupRepo permissionSetupRepo;
     private final UserPermissionRepo userPermissionRepo;
+    private final UserLeaveBalanceRepo userLeaveBalanceRepo;
 
     @Autowired
-    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo, PermissionSetupRepo permissionSetupRepo, UserPermissionRepo userPermissionRepo) {
+    public UserServiceImpl(UserRepo userRepo, DTOMapper dtoMapper, PasswordEncoder passwordEncoder, RoleSetupRepo roleSetupRepo, RoleSetupServiceImpl roleSetupServiceImpl, KeycloakService keycloakService, UserRoleRepo userRoleRepo, DepartmentRepo departmentRepo, DepartmentRepo departmentRepo1, UserDepartmentRepo userDepartmentRepo, UserCompanyRepo userCompanyRepo, CompanyRepo companyRepo, PermissionSetupRepo permissionSetupRepo, UserPermissionRepo userPermissionRepo, UserLeaveBalanceRepo userLeaveBalanceRepo) {
         this.userRepo = userRepo;
         this.dtoMapper = dtoMapper;
         this.passwordEncoder = passwordEncoder;
@@ -53,6 +56,7 @@ public class UserServiceImpl implements UserService {
         this.companyRepo = companyRepo;
         this.permissionSetupRepo = permissionSetupRepo;
         this.userPermissionRepo = userPermissionRepo;
+        this.userLeaveBalanceRepo = userLeaveBalanceRepo;
     }
 
     /**
@@ -112,6 +116,10 @@ public class UserServiceImpl implements UserService {
            saveUserCompanies(userPayloadDTO.getCompanies(), userResponse.getId());
            log.info("About to save user departments");
            saveUserDepartments(userPayloadDTO.getDepartments(), userResponse.getId());
+           if (userPayloadDTO.getLeaveBalance()!=null){
+               log.info("About to save user leave balance");
+               saveUserLeaveBalance(userPayloadDTO.getLeaveBalance(), userResponse.getId());
+           }
            /**
             * saving user in keycloak
             */
@@ -256,6 +264,10 @@ public class UserServiceImpl implements UserService {
             saveUserCompanies(userPayload.getCompanies(), userResponse.getId());
             log.info("About to update user departments");
             saveUserDepartments(userPayload.getDepartments(), userResponse.getId());
+            if (userPayload.getLeaveBalance()!=null){
+                log.info("About to update user leave balance");
+                saveUserLeaveBalance(userPayload.getLeaveBalance(), userResponse.getId());
+            }
             /**
              * update user in keycloak
              */
@@ -469,5 +481,29 @@ public class UserServiceImpl implements UserService {
                     .build();
             userPermissionRepo.save(userPermission);
         });
+    }
+
+    /**
+     * @description A helper method used to save user leave balance on account creation/update
+     * @param leaveBalance The leave balance to be saved
+     * @param userId The id of the user
+     */
+    @Transactional
+    protected void saveUserLeaveBalance(float leaveBalance, UUID userId){
+        /**
+         * remove the existing record of the user if exist
+         */
+        Optional<UserLeaveBalance> balanceOptional = userLeaveBalanceRepo.findByUsrId(userId);
+        balanceOptional.ifPresent((bal)->userLeaveBalanceRepo.deleteById(bal.getId()));
+
+        /**
+         * prepare payload to save new leave balance
+         */
+        UserLeaveBalance userLeaveBalance = UserLeaveBalance
+                .builder()
+                .leaveBalance(leaveBalance)
+                .usrId(userId)
+                .build();
+        userLeaveBalanceRepo.save(userLeaveBalance);
     }
 }

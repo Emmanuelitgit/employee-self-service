@@ -164,6 +164,17 @@ public class AppUtils {
         return userId.toString();
     }
 
+    /**
+     * @description This method is used to round values to their nearest decimal points
+     * @param value The value to be rounded
+     * @param decimalPlaces The decimal place to round the value to
+     * @return The rounded value
+     */
+    public static float roundNumber(float value, int decimalPlaces) {
+        double scale = Math.pow(10, decimalPlaces);
+        return (float) (Math.round(value * scale) / scale);
+    }
+
     public static final ExampleMatcher SEARCH_CONDITION_MATCH_ALL = ExampleMatcher.matchingAll()
             .withMatcher("price", exact())
             .withIgnorePaths("id", "createdBy", "updatedBy", "createdAt", "updatedAt")
