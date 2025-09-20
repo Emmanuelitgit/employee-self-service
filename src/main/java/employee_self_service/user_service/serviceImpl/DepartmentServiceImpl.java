@@ -92,6 +92,7 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getDepartmentById(UUID departmentId) {
         try {

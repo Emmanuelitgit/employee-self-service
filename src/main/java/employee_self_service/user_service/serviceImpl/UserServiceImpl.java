@@ -350,6 +350,7 @@ public class UserServiceImpl implements UserService {
      * @auther Emmanuel Yidana
      * @createdAt 20 August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN','GENERAL_MANAGER','MANAGER')")
     @Override
     public ResponseEntity<ResponseDTO> fetchEmployeesForManagerOrHROrGM() {
         try{
