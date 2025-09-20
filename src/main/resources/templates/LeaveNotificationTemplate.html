@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .email-header {
+            background-color: #4361ee;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .email-body {
+            padding: 20px;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .task-details {
+            margin: 20px 0;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .task-details th, .task-details td {
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .task-details th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+        .email-footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            color: #4361ee;
+            border-top: 1px solid #e0e0e0;
+        }
+        .email-footer a {
+            color: #4361ee;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <div class="email-header">
+        <h1>Leave Application</h1>
+    </div>
+    <div class="email-body">
+        <p>Hello <span th:text="${name}">User</span>,</p>
+        <p>Your leave application <b th:text="${leaveNumber}">L0000123</b> has been submitted successfully with the following details:</p>
+
+        <table class="task-details">
+            <tr>
+                <th>Leave Type</th>
+                <td th:text="${leaveType}">Annual Leave</td>
+            </tr>
+            <tr>
+                <th>Start Date</th>
+                <td th:text="${startDate}">12th Sept 2025</td>
+            </tr>
+            <tr>
+                <th>End Date</th>
+                <td th:text="${endDate}">12th Sept 2025</td>
+            </tr>
+            <tr>
+                <th>Leave Days</th>
+                <td th:text="${leaveDays}">10</td>
+            </tr>
+            <tr>
+                <th>Status</th>
+                <td th:text="${status}">Pending Manager Approval</td>
+            </tr>
+        </table>
+
+        <p>Best regards,<br>The ESS eam</p>
+    </div>
+    <div class="email-footer">
+        <p>&copy; 2025 ESS. All rights reserved.</p>
+        <p><a href="#">Privacy Policy</a> | <a href="#">Contact Support</a></p>
+    </div>
+</div>
+</body>
+</html>
