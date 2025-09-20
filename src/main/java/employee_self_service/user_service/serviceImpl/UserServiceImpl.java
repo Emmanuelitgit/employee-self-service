@@ -387,8 +387,8 @@ public class UserServiceImpl implements UserService {
              */
             if (employees.isEmpty()){
                 log.info("No employee record found");
-                ResponseDTO  response = AppUtils.getResponseDto("No employee record found", HttpStatus.NOT_FOUND);
-                return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                responseDTO = AppUtils.getResponseDto("No employee record found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
 
             /**

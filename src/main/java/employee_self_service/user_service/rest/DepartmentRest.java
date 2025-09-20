@@ -44,4 +44,9 @@ public class DepartmentRest {
     public ResponseEntity<ResponseDTO> removeDepartment(@PathVariable UUID departmentId){
         return departmentService.removeDepartment(departmentId);
     }
+
+    @GetMapping("/for-logged-in-user")
+    public ResponseEntity<ResponseDTO> fetchDepartmentsForManagerOrHROrGM(){
+        return departmentService.fetchDepartmentsForManagerOrHROrGM();
+    }
 }

@@ -13,4 +13,5 @@ public interface DepartmentService {
     ResponseEntity<ResponseDTO> getDepartmentById(UUID departmentId);
     ResponseEntity<ResponseDTO> updateDepartment(Department department, UUID departmentId);
     ResponseEntity<ResponseDTO> removeDepartment(UUID departmentId);
+    ResponseEntity<ResponseDTO> fetchDepartmentsForManagerOrHROrGM();
 }

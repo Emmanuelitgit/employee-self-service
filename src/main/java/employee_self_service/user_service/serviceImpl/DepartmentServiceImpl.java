@@ -4,13 +4,16 @@ import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.models.Department;
 import employee_self_service.user_service.repo.DepartmentRepo;
 import employee_self_service.user_service.service.DepartmentService;
+import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,9 +23,12 @@ import java.util.UUID;
 public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepo departmentRepo;
+    private final AppUtils appUtils;
 
-    public DepartmentServiceImpl(DepartmentRepo departmentRepo) {
+    @Autowired
+    public DepartmentServiceImpl(DepartmentRepo departmentRepo, AppUtils appUtils) {
         this.departmentRepo = departmentRepo;
+        this.appUtils = appUtils;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN')")
@@ -189,6 +195,58 @@ public class DepartmentServiceImpl implements DepartmentService {
             log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}",
                     500, e.getCause(), e.getMessage());
             ResponseDTO response = AppUtils.getResponseDto("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @description This method is used to fetch departments for logged-in user(HR, GM, Manager)
+     * @return ResponseEntity containing the departments list and status info
+     * @auther Emmanuel Yidana
+     * @createdAt 20th August 2025
+     */
+    @PreAuthorize("hasAnyAuthority('ADMIN','GENERAL_MANAGER','MANAGER')")
+    @Override
+    public ResponseEntity<ResponseDTO> fetchDepartmentsForManagerOrHROrGM() {
+        try {
+            log.info("In fetch departments for HR or Manager or GM");
+            ResponseDTO responseDTO;
+            String userRole = appUtils.getAuthenticatedUserRole();
+            log.info("Fetching user role from principal:->>{}", userRole);
+            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            log.info("Fetching user id from principal");
+
+            /**
+             * fetch departments base on the logged-in user role
+             */
+            List<Department> departments = new ArrayList<>();
+            if (AppConstants.MANAGER_ROLE.equalsIgnoreCase(userRole)){
+                log.info("About to fetch department for Manager");
+                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForManager(userId);
+                departments.addAll(departmentsFromDB);
+            } else if (AppConstants.HR_ROLE.equalsIgnoreCase(userRole)) {
+                log.info("About to fetch department for HR");
+                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForHR(userId);
+                departments.addAll(departmentsFromDB);
+            } else if (AppConstants.GENERAL_MANAGER_ROLE.equalsIgnoreCase(userRole)) {
+                log.info("About to fetch department for General Manager");
+                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForGM(userId);
+                departments.addAll(departmentsFromDB);
+            }else {
+                log.error("User not authorized to this feature");
+                responseDTO = AppUtils.getResponseDto("User not authorized to this feature", HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(responseDTO, HttpStatus.UNAUTHORIZED);
+            }
+            /**
+             * return response on success
+             */
+            log.info("Departments fetched successfully");
+            ResponseDTO  response = AppUtils.getResponseDto("Departments fetched successfully", HttpStatus.OK, departments);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        }catch (Exception e) {
+            log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+            ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

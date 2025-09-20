@@ -19,5 +19,6 @@ public class Department extends AuditorData {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID Id;
     private String name;
+    private UUID companyId;
     private UUID managerId;
 }
