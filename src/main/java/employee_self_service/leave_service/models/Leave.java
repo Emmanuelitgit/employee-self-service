@@ -37,4 +37,6 @@ public class Leave extends AuditorData {
     private String leaveType;//annual leave, maternal leave, sick leave
     @Column(name = "manager_id", nullable = false)
     private UUID managerId;
+    @Column(name = "leave_number")
+    private String leaveNumber;
 }

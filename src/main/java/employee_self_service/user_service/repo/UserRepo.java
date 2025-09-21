@@ -67,6 +67,12 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             "WHERE c.gm_id=:gmId ", nativeQuery = true)
     List<UserDTOProjection> fetchEmployeesForGM(@Param("gmId") UUID gmId);
 
+    @Query(value = "SELECT BIN_TO_UUID(c.hr_id) FROM user_tbl u " +
+            "JOIN user_company_tbl uc ON uc.user_id=u.id " +
+            "JOIN company_setup_tbl c ON uc.company_id=c.id " +
+            "WHERE u.id=:employeeId ", nativeQuery = true)
+    UUID getHRIdByEmployeeId(@Param("employeeId") UUID employeeId);
+
     Optional<User> findUserByUsername(String username);
 
     Optional<User> findUserByEmail(String email);

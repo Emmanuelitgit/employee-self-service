@@ -5,6 +5,8 @@ import employee_self_service.leave_service.models.UserLeaveBalance;
 import employee_self_service.leave_service.repo.LeaveRepo;
 import employee_self_service.leave_service.repo.UserLeaveBalanceRepo;
 import employee_self_service.leave_service.service.LeaveService;
+import employee_self_service.notification_service.dto.LeaveDTO;
+import employee_self_service.notification_service.serviceImpl.NotificationServiceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.exception.NotFoundException;
 import employee_self_service.util.AppConstants;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,12 +32,14 @@ public class LeaveServiceImpl implements LeaveService {
     private final LeaveRepo leaveRepo;
     private final AppUtils appUtils;
     private final UserLeaveBalanceRepo userLeaveBalanceRepo;
+    private final NotificationServiceImpl notificationService;
 
     @Autowired
-    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils, UserLeaveBalanceRepo userLeaveBalanceRepo) {
+    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils, UserLeaveBalanceRepo userLeaveBalanceRepo, NotificationServiceImpl notificationService) {
         this.leaveRepo = leaveRepo;
         this.appUtils = appUtils;
         this.userLeaveBalanceRepo = userLeaveBalanceRepo;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -66,6 +71,22 @@ public class LeaveServiceImpl implements LeaveService {
             leave.setLeaveDays(leaveCount);
             leave.setStatus(AppConstants.PENDING_MANAGER_APPROVAL);
             Leave res = leaveRepo.save(leave);
+
+            /**
+             * notify user and manager
+             */
+            LeaveDTO leaveDTO = LeaveDTO
+                    .builder()
+                    .leaveNumber("L0000124")
+                    .leaveType(leave.getLeaveType())
+                    .leaveDays(res.getLeaveDays())
+                    .endDate(leave.getEndDate())
+                    .startDate(leave.getStartDate())
+                    .status(AppConstants.PENDING_MANAGER_APPROVAL)
+                    .userId(res.getUserId())
+                    .build();
+            notificationService.alertUser(leaveDTO);
+            notificationService.alertManager(leaveDTO);
 
             /**
              * return response on success
@@ -265,6 +286,7 @@ public class LeaveServiceImpl implements LeaveService {
      * @createdAt 18th August 2025
      */
     @Override
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'HR')")
     public ResponseEntity<ResponseDTO> approveOrRejectLeave(UUID leaveId, String status) {
         try{
             log.info("In approval flow method:->>{}", status);
@@ -284,6 +306,23 @@ public class LeaveServiceImpl implements LeaveService {
             if (AppConstants.PENDING_HR_APPROVAL.equalsIgnoreCase(status)){
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.PENDING_HR_APPROVAL);
+
+                /**
+                 * notify user and HR
+                 */
+                LeaveDTO leaveDTO = LeaveDTO
+                        .builder()
+                        .leaveNumber("L0000124")
+                        .leaveType(existingData.getLeaveType())
+                        .leaveDays(existingData.getLeaveDays())
+                        .endDate(existingData.getEndDate())
+                        .startDate(existingData.getStartDate())
+                        .status(AppConstants.PENDING_HR_APPROVAL)
+                        .userId(existingData.getUserId())
+                        .build();
+                notificationService.alertUser(leaveDTO);
+                notificationService.alertHR(leaveDTO);
+
             } else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.APPROVED);
@@ -294,9 +333,41 @@ public class LeaveServiceImpl implements LeaveService {
                 if (AppConstants.ANNUAL_LEAVE.equalsIgnoreCase(existingData.getLeaveType())){
                     updateLeaveBalance(existingData.getUserId(), existingData.getLeaveDays());
                 }
+
+                /**
+                 * notify user
+                 */
+                LeaveDTO leaveDTO = LeaveDTO
+                        .builder()
+                        .leaveNumber("L0000124")
+                        .leaveType(existingData.getLeaveType())
+                        .leaveDays(existingData.getLeaveDays())
+                        .endDate(existingData.getEndDate())
+                        .startDate(existingData.getStartDate())
+                        .status(AppConstants.APPROVED)
+                        .userId(existingData.getUserId())
+                        .build();
+                notificationService.alertUser(leaveDTO);
+
             } else if (AppConstants.REJECTED.equalsIgnoreCase(status)) {
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.REJECTED);
+
+                /**
+                 * notify
+                 */
+                LeaveDTO leaveDTO = LeaveDTO
+                        .builder()
+                        .leaveNumber("L0000124")
+                        .leaveType(existingData.getLeaveType())
+                        .leaveDays(existingData.getLeaveDays())
+                        .endDate(existingData.getEndDate())
+                        .startDate(existingData.getStartDate())
+                        .status(AppConstants.REJECTED)
+                        .userId(existingData.getUserId())
+                        .build();
+                notificationService.alertUser(leaveDTO);
+
             }else {
                 log.info("Status does not exist");
             }
@@ -358,6 +429,7 @@ public class LeaveServiceImpl implements LeaveService {
      * This only filter out leaves pending for their approval
      * @return ResponseEntity containing the returned leaves and status info
      */
+    @PreAuthorize("hasAnyAuthority('MANAGER','HR')")
     @Override
     public ResponseEntity<ResponseDTO> fetchLeavesForManagerAndHR() {
         try {
@@ -434,10 +506,35 @@ public class LeaveServiceImpl implements LeaveService {
                 responseDTO = AppUtils.getResponseDto("Leave record not found", HttpStatus.NOT_FOUND);
                 return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
+            /**
+             * check if manager has not yet approved
+             */
+            if (!AppConstants.PENDING_MANAGER_APPROVAL.equalsIgnoreCase(leaveOptional.get().getStatus())){
+                log.info("Manager has approved already and cancellation cannot be done the moment");
+                responseDTO = AppUtils.getResponseDto("Manager has approved already and cancellation cannot be done the moment",
+                        HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
+
             log.warn("About to cancel leave application");
             Leave existingData = leaveOptional.get();
             existingData.setStatus(AppConstants.CANCELLED);
             Leave res = leaveRepo.save(existingData);
+
+            /**
+             * notify user
+             */
+            LeaveDTO leaveDTO = LeaveDTO
+                    .builder()
+                    .leaveNumber("L0000124")
+                    .leaveType(existingData.getLeaveType())
+                    .leaveDays(existingData.getLeaveDays())
+                    .endDate(existingData.getEndDate())
+                    .startDate(existingData.getStartDate())
+                    .status(AppConstants.CANCELLED)
+                    .userId(existingData.getUserId())
+                    .build();
+            notificationService.alertUser(leaveDTO);
 
             /**
              * return response on success
