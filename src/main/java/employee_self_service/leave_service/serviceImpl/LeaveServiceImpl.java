@@ -1,5 +1,6 @@
 package employee_self_service.leave_service.serviceImpl;
 
+import employee_self_service.leave_service.dto.LeavePayload;
 import employee_self_service.leave_service.models.Leave;
 import employee_self_service.leave_service.models.UserLeaveBalance;
 import employee_self_service.leave_service.repo.LeaveRepo;
@@ -9,6 +10,8 @@ import employee_self_service.notification_service.dto.LeaveDTO;
 import employee_self_service.notification_service.serviceImpl.NotificationServiceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.exception.NotFoundException;
+import employee_self_service.user_service.models.User;
+import employee_self_service.user_service.repo.UserRepo;
 import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -33,43 +36,68 @@ public class LeaveServiceImpl implements LeaveService {
     private final AppUtils appUtils;
     private final UserLeaveBalanceRepo userLeaveBalanceRepo;
     private final NotificationServiceImpl notificationService;
+    private final UserRepo userRepo;
 
     @Autowired
-    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils, UserLeaveBalanceRepo userLeaveBalanceRepo, NotificationServiceImpl notificationService) {
+    public LeaveServiceImpl(LeaveRepo leaveRepo, AppUtils appUtils, UserLeaveBalanceRepo userLeaveBalanceRepo, NotificationServiceImpl notificationService, UserRepo userRepo) {
         this.leaveRepo = leaveRepo;
         this.appUtils = appUtils;
         this.userLeaveBalanceRepo = userLeaveBalanceRepo;
         this.notificationService = notificationService;
+        this.userRepo = userRepo;
     }
 
     /**
      * @description This method is used to create a new leave application record
-     * @param leave The payload of the leave to be created
+     * @param leavePayload The payload of the leave to be created
      * @return ResponseEntity containing the created leave record and status info
      * @auther Emmanuel Yidana
      * @createdAt 18th August 2025
      */
     @Override
-    public ResponseEntity<ResponseDTO> createLeave(Leave leave) {
+    public ResponseEntity<ResponseDTO> createLeave(LeavePayload leavePayload) {
         try{
-            log.info("In create leave method:->>{}", leave);
+            log.info("In create leave method:->>{}", leavePayload);
             ResponseDTO responseDTO;
+
+            /**
+             * retrieve user and manager details
+             */
+            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            log.info("Fetching user id from principal:->>{}", userId);
+            Optional<User> userOptional = userRepo.findById(userId);
+            if (userOptional.isEmpty()){
+                log.error("User record not exist:->>{}", userId);
+                responseDTO = AppUtils.getResponseDto("User record not exist", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
+            }
+            UUID managerId = userOptional.get().getManagerId();
+            log.info("Fetching manager id:->>{}", managerId);
 
             /**
              * validate payload
              */
             log.info("Validating payload....");
-            if (leave==null){
+            if (leavePayload==null){
                 log.error("Leave payload is null");
                 responseDTO = AppUtils.getResponseDto("Leave payload cannot null", HttpStatus.BAD_REQUEST);
                 return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
             }
-            log.info("About to save leave record:->>{}", leave);
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
-            Long leaveCount = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate());
-            leave.setUserId(userId);
-            leave.setLeaveDays(leaveCount);
-            leave.setStatus(AppConstants.PENDING_MANAGER_APPROVAL);
+            log.info("About to save leave record:->>{}", leavePayload);
+            Long leaveCount = ChronoUnit.DAYS.between(
+                    AppUtils.convertStringToLocalDateTime(leavePayload.getStartDate()),
+                    AppUtils.convertStringToLocalDateTime(leavePayload.getEndDate()));
+
+            Leave leave = Leave
+                    .builder()
+                    .userId(userId)
+                    .leaveDays(leaveCount)
+                    .status(AppConstants.PENDING_MANAGER_APPROVAL)
+                    .startDate(AppUtils.convertStringToLocalDateTime(leavePayload.getStartDate()))
+                    .endDate(AppUtils.convertStringToLocalDateTime(leavePayload.getEndDate()))
+                    .managerId(managerId)
+                    .leaveNumber("L00000123")
+                    .build();
             Leave res = leaveRepo.save(leave);
 
             /**
@@ -184,7 +212,7 @@ public class LeaveServiceImpl implements LeaveService {
      * @createdAt 18th August 2025
      */
     @Override
-    public ResponseEntity<ResponseDTO> updateLeave(Leave leave, UUID leaveId) {
+    public ResponseEntity<ResponseDTO> updateLeave(LeavePayload leave, UUID leaveId) {
         try {
             log.info("In update leave method:->>{}", leave);
             ResponseDTO responseDTO;
@@ -214,15 +242,25 @@ public class LeaveServiceImpl implements LeaveService {
 
             log.info("About to update leave record");
             Leave existingData = leaveOptional.get();
-            existingData.setStartDate(leave.getStartDate()!=null?leave.getStartDate():existingData.getStartDate());
-            existingData.setEndDate(leave.getEndDate()!=null?leave.getEndDate():existingData.getEndDate());
+
+            existingData.setStartDate(leave.getStartDate()!=null?
+                    AppUtils.convertStringToLocalDateTime(leave.getStartDate())
+                    :existingData.getStartDate());
+
+            existingData.setEndDate(leave.getEndDate()!=null?
+                    AppUtils.convertStringToLocalDateTime(leave.getEndDate())
+                    :existingData.getEndDate());
+
             existingData.setLeaveType(leave.getLeaveType()!=null?leave.getLeaveType():existingData.getLeaveType());
+
             if (leave.getStartDate()!=null&&leave.getEndDate()!=null){
-                Long leaveCount = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate());
+                Long leaveCount = ChronoUnit.DAYS.between(
+                        AppUtils.convertStringToLocalDateTime(leave.getStartDate()),
+                        AppUtils.convertStringToLocalDateTime(leave.getEndDate()));
                 existingData.setLeaveDays(leaveCount);
             }
             log.info("About to save updated record");
-            Leave res = leaveRepo.save(leave);
+            Leave res = leaveRepo.save(existingData);
 
             /**
              * return response on success
@@ -268,7 +306,7 @@ public class LeaveServiceImpl implements LeaveService {
              * return response on success
              */
             log.info("Leave record deleted successfully");
-            responseDTO = AppUtils.getResponseDto("Leave record deleted successfully", HttpStatus.OK);
+            responseDTO = AppUtils.getResponseDto("Leave record deleted successfully", HttpStatus.OK, leaveOptional.get());
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         }catch (Exception e) {
@@ -447,26 +485,25 @@ public class LeaveServiceImpl implements LeaveService {
                 log.info("About to load leaves for manager");
                 List<Leave> leavesFromDB = leaveRepo.fetchLeavesForManager(userId);
                 leaves.addAll(leavesFromDB);
-                if (leaves.isEmpty()){
-                    log.error("No leave record found for user:->>{}", userId);
-                    responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
-                    return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
-                }
 
             } else if (AppConstants.HR_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())) {
                 log.info("About to load leaves for HR");
                 List<Leave> leavesFromDB = leaveRepo.fetchLeavesForHR(userId);
                 leaves.addAll(leavesFromDB);
-                if (leaves.isEmpty()){
-                    log.error("No leave record found for user:->>{}", userId);
-                    responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
-                    return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
-                }
 
             }else {
                 log.error("User not authorized to this feature");
                 responseDTO = AppUtils.getResponseDto("User not authorized to this feature", HttpStatus.UNAUTHORIZED);
                 return new ResponseEntity<>(responseDTO, HttpStatus.UNAUTHORIZED);
+            }
+
+            /**
+             * check if retrieved data is null/empty
+             */
+            if (leaves.isEmpty()){
+                log.error("No leave record found for user:->>{}", userId);
+                responseDTO = AppUtils.getResponseDto("No leave record found for user", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
 
             /**
@@ -540,7 +577,7 @@ public class LeaveServiceImpl implements LeaveService {
              * return response on success
              */
             log.info("Leave application cancelled successfully:->>{}", res);
-            responseDTO = AppUtils.getResponseDto("Leave status updated successfully", HttpStatus.OK);
+            responseDTO = AppUtils.getResponseDto("Leave application cancelled successfully", HttpStatus.OK);
             return new ResponseEntity<>(responseDTO, HttpStatus.OK);
 
         }catch (Exception e) {

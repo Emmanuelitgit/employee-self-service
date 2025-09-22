@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -15,7 +16,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "leave_tbl", schema = "user_schema")
+@Table(name = "leave_tbl", schema = "leave_schema")
 public class Leave extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -25,15 +26,12 @@ public class Leave extends AuditorData {
     @Column(nullable = false, name = "leave_days")
     private Long leaveDays;
     @Column(nullable = false, name = "start_date")
-    @NotNull(message = "Leave start date cannot be null")
-    private LocalDateTime startDate;
+    private LocalDate startDate;
     @Column(nullable = false, name = "end_date")
-    @NotNull(message = "Leave end date cannot be null")
-    private LocalDateTime endDate;
+    private LocalDate endDate;
     @Column(nullable = false, name = "status")
     private String status;
     @Column(nullable = false, name = "leave_type")
-    @NotBlank(message = "Leave type cannot be null or empty")
     private String leaveType;//annual leave, maternal leave, sick leave
     @Column(name = "manager_id", nullable = false)
     private UUID managerId;

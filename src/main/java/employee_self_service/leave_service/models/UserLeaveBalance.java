@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "leave_balance_tbl", schema = "user_schema")
+@Table(name = "leave_balance_tbl", schema = "leave_schema")
 public class UserLeaveBalance {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,10 +14,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LeaveDTO {
-    private LocalDateTime endDate;
+    private LocalDate endDate;
     private Long leaveDays;
     private String status;
-    private LocalDateTime startDate;
+    private LocalDate startDate;
     private String leaveType;
     private String leaveNumber;
     private UUID userId;

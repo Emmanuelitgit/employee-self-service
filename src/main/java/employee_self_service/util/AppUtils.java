@@ -21,7 +21,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -191,6 +193,17 @@ public class AppUtils {
     public static float roundNumber(float value, int decimalPlaces) {
         double scale = Math.pow(10, decimalPlaces);
         return (float) (Math.round(value * scale) / scale);
+    }
+
+    /**
+     * @description a method to convert a string date to local date on the (yyyy-MM-dd) date format
+     * @param startDate
+     * @return
+     */
+    public static LocalDate convertStringToLocalDateTime(String startDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return LocalDate.parse(startDate, formatter);
+
     }
 
     public static final ExampleMatcher SEARCH_CONDITION_MATCH_ALL = ExampleMatcher.matchingAll()

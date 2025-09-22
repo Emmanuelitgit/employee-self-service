@@ -1,5 +1,6 @@
 package employee_self_service.leave_service.rest;
 
+import employee_self_service.leave_service.dto.LeavePayload;
 import employee_self_service.leave_service.models.Leave;
 import employee_self_service.leave_service.serviceImpl.LeaveServiceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
@@ -22,7 +23,7 @@ public class LeaveRest {
     }
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> createLeave(@RequestBody Leave leave){
+    public ResponseEntity<ResponseDTO> createLeave(@RequestBody LeavePayload leave){
         return leaveService.createLeave(leave);
     }
 
@@ -37,7 +38,7 @@ public class LeaveRest {
     }
 
     @PutMapping("/{leaveId}")
-    public ResponseEntity<ResponseDTO> updateLeave(@RequestBody Leave leave, @PathVariable UUID leaveId){
+    public ResponseEntity<ResponseDTO> updateLeave(@RequestBody LeavePayload leave, @PathVariable UUID leaveId){
         return leaveService.updateLeave(leave, leaveId);
     }
 
