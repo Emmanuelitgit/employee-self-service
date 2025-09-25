@@ -3,6 +3,7 @@ package employee_self_service.user_service.serviceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.models.Department;
 import employee_self_service.user_service.repo.DepartmentRepo;
+import employee_self_service.user_service.repo.UserRepo;
 import employee_self_service.user_service.service.DepartmentService;
 import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
@@ -24,11 +25,13 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     private final DepartmentRepo departmentRepo;
     private final AppUtils appUtils;
+    private final UserRepo userRepo;
 
     @Autowired
-    public DepartmentServiceImpl(DepartmentRepo departmentRepo, AppUtils appUtils) {
+    public DepartmentServiceImpl(DepartmentRepo departmentRepo, AppUtils appUtils, UserRepo userRepo, UserRepo userRepo1) {
         this.departmentRepo = departmentRepo;
         this.appUtils = appUtils;
+        this.userRepo = userRepo1;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN')")
@@ -222,16 +225,20 @@ public class DepartmentServiceImpl implements DepartmentService {
              */
             List<Department> departments = new ArrayList<>();
             if (AppConstants.MANAGER_ROLE.equalsIgnoreCase(userRole)){
-                log.info("About to fetch department for Manager");
+                log.info("About to fetch departments for Manager");
                 List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForManager(userId);
                 departments.addAll(departmentsFromDB);
             } else if (AppConstants.HR_ROLE.equalsIgnoreCase(userRole)) {
-                log.info("About to fetch department for HR");
-                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForHR(userId);
+                log.info("About to fetch departments for HR");
+                List<UUID> hrCompaniesIds = userRepo.getHRCompaniesIds(userId);
+                log.info("Fetching HR companies Ids:->>{}", hrCompaniesIds);
+                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForHR(hrCompaniesIds);
                 departments.addAll(departmentsFromDB);
             } else if (AppConstants.GENERAL_MANAGER_ROLE.equalsIgnoreCase(userRole)) {
-                log.info("About to fetch department for General Manager");
-                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForGM(userId);
+                log.info("About to fetch departments for General Manager");
+                List<UUID> gmCompaniesIds = userRepo.getGMCompaniesIds(userId);
+                log.info("Fetching GM companies Ids:->>{}", gmCompaniesIds);
+                List<Department> departmentsFromDB = departmentRepo.fetchDepartmentsForGM(gmCompaniesIds);
                 departments.addAll(departmentsFromDB);
             }else {
                 log.error("User not authorized to this feature");

@@ -32,8 +32,8 @@ public class LeaveRest {
         return leaveService.getLeaves();
     }
 
-    @GetMapping
-    public ResponseEntity<ResponseDTO> getLeaveById(UUID leaveId){
+    @GetMapping("/{leaveId}")
+    public ResponseEntity<ResponseDTO> getLeaveById(@PathVariable UUID leaveId){
         return leaveService.getLeaveById(leaveId);
     }
 
@@ -42,8 +42,8 @@ public class LeaveRest {
         return leaveService.updateLeave(leave, leaveId);
     }
 
-    @DeleteMapping
-    public ResponseEntity<ResponseDTO> removeLeave(UUID leaveId){
+    @DeleteMapping("/{leaveId}")
+    public ResponseEntity<ResponseDTO> removeLeave(@PathVariable UUID leaveId){
         return leaveService.removeLeave(leaveId);
     }
 
@@ -63,7 +63,7 @@ public class LeaveRest {
         return leaveService.fetchLeavesForManagerAndHR();
     }
 
-    @GetMapping("/cancel/{leaveId}")
+    @PutMapping("/cancel/{leaveId}")
     public ResponseEntity<ResponseDTO> cancelLeave(@PathVariable UUID leaveId){
         return leaveService.cancelLeave(leaveId);
     }

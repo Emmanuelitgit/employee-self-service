@@ -32,11 +32,11 @@ public class UserPayloadDTO {
     private String username;
     @NotNull(message = "Role id cannot be null")
     private UUID role;
-    @NotEmpty(message = "Departments cannot be empty")
+//    @NotEmpty(message = "Departments cannot be empty")
     private List<UUID> departments;
-    @NotEmpty(message = "Companies cannot be empty")
+//    @NotEmpty(message = "Companies cannot be empty")
     private List<UUID> companies;
-    @NotBlank(message = "Manager id cannot null or empty")
+    @NotNull(message = "Manager id cannot null")
     private UUID managerId;
     private List<UUID> permissions;
     private Float leaveBalance;

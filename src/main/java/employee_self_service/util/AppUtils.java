@@ -180,8 +180,10 @@ public class AppUtils {
                 .getAuthentication()
                 .getAuthorities()
                 .stream()
+                .filter(item->Character.isUpperCase(item.getAuthority().charAt(0)))
                 .findFirst()
-                .toString();
+                .get()
+                .getAuthority();
     }
 
     /**

@@ -42,7 +42,7 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             "WHERE u.email =? ", nativeQuery = true)
     String getUserRole(String username);
 
-    @Query(value = "SELECT BIN_TO_UUID(u.id) FROM  user_tbl WHERE username=:username", nativeQuery = true)
+    @Query(value = "SELECT BIN_TO_UUID(u.id) FROM  user_tbl u WHERE username=:username", nativeQuery = true)
     UUID getUserId(@RequestParam("username") String username);
 
     @Query(value = "SELECT BIN_TO_UUID(u.id) AS id, " +
@@ -56,22 +56,34 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             "FROM user_tbl u " +
             "JOIN user_company_tbl uc ON uc.user_id=u.id " +
             "JOIN company_setup_tbl c ON c.id=uc.company_id " +
-            "WHERE c.hr_id=:hrId ", nativeQuery = true)
-    List<UserDTOProjection> fetchEmployeesForHR(@Param("hrId") UUID gmId);
+            "WHERE c.id IN (:hrCompaniesIds) ", nativeQuery = true)
+    List<UserDTOProjection> fetchEmployeesForHR(@Param("hrCompaniesIds") List<UUID> hrCompaniesIds);
 
     @Query(value = "SELECT BIN_TO_UUID(u.id) AS id, u.first_name, " +
             "u.last_name, u.email, u.phone, u.username, rs.name AS role " +
             "FROM user_tbl u " +
             "JOIN user_company_tbl uc ON uc.user_id=u.id " +
             "JOIN company_setup_tbl c ON c.id=uc.company_id " +
-            "WHERE c.gm_id=:gmId ", nativeQuery = true)
-    List<UserDTOProjection> fetchEmployeesForGM(@Param("gmId") UUID gmId);
+            "WHERE c.id IN (:gmCompaniesIds) ", nativeQuery = true)
+    List<UserDTOProjection> fetchEmployeesForGM(@Param("gmCompaniesIds") List<UUID> gmCompaniesIds);
 
-    @Query(value = "SELECT BIN_TO_UUID(c.hr_id) FROM user_tbl u " +
-            "JOIN user_company_tbl uc ON uc.user_id=u.id " +
-            "JOIN company_setup_tbl c ON uc.company_id=c.id " +
-            "WHERE u.id=:employeeId ", nativeQuery = true)
-    UUID getHRIdByEmployeeId(@Param("employeeId") UUID employeeId);
+    @Query(value = "SELECT BIN_TO_UUID(uc.user_id) FROM user_company_tbl uc " +
+            "JOIN user_role_tbl ur ON uc.user_id=ur.user_id " +
+            "JOIN role_setup_tbl rs ON ur.role_id=rs.id " +
+            "WHERE rs.name='HR' AND uc.company_id=:companyId ", nativeQuery = true)
+    UUID getHRIdByEmployeeCompanyId(@Param("companyId") UUID companyId);
+
+    @Query(value = "SELECT BIN_TO_UUID(u.manager_id) FROM user_tbl u WHERE u.id=:userId ", nativeQuery = true)
+    UUID getManagerId(@Param("userId") UUID userId);
+
+    @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:hrId ", nativeQuery = true)
+    List<UUID> getHRCompaniesIds(@Param("hrId") UUID hrId);
+
+    @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:gmId ", nativeQuery = true)
+    List<UUID> getGMCompaniesIds(@Param("gmId") UUID gmId);
+
+    @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:employeeId ", nativeQuery = true)
+    UUID getEmployeeCompanyId(@Param("employeeId") UUID employeeId);
 
     Optional<User> findUserByUsername(String username);
 

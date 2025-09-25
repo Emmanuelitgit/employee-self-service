@@ -33,7 +33,7 @@ public class CompanyRest {
         return companyService.getCompanies();
     }
 
-    @GetMapping("/{companyId)}")
+    @GetMapping("/{companyId}")
     public ResponseEntity<ResponseDTO> getCompanyById(@PathVariable UUID companyId){
         return companyService.getCompanyById(companyId);
     }

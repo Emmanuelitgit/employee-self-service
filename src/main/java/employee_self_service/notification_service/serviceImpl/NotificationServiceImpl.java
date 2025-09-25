@@ -191,9 +191,12 @@ public class NotificationServiceImpl implements NotificationService {
             User user = userOptional.get();
 
             /**
-             * get manager details
+             * get HR details
              */
-            UUID hrId = userRepo.getHRIdByEmployeeId(user.getId());
+            UUID employeeCompanyId = userRepo.getEmployeeCompanyId(user.getId());
+            log.info("Fetching employee company Id:->>{}", employeeCompanyId);
+            UUID hrId = userRepo.getHRIdByEmployeeCompanyId(employeeCompanyId);
+            log.info("Fetching HR id from db:->>{}", hrId);
             Optional<User> hrOptional = userRepo.findById(hrId);
             if (hrOptional.isEmpty()){
                 log.info("HR record does not exist:->>{}",leaveDTO.getUserId());

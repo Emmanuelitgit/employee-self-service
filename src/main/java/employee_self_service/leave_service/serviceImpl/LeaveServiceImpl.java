@@ -10,7 +10,6 @@ import employee_self_service.notification_service.dto.LeaveDTO;
 import employee_self_service.notification_service.serviceImpl.NotificationServiceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
 import employee_self_service.user_service.exception.NotFoundException;
-import employee_self_service.user_service.models.User;
 import employee_self_service.user_service.repo.UserRepo;
 import employee_self_service.util.AppConstants;
 import employee_self_service.util.AppUtils;
@@ -22,6 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -65,13 +65,7 @@ public class LeaveServiceImpl implements LeaveService {
              */
             UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
             log.info("Fetching user id from principal:->>{}", userId);
-            Optional<User> userOptional = userRepo.findById(userId);
-            if (userOptional.isEmpty()){
-                log.error("User record not exist:->>{}", userId);
-                responseDTO = AppUtils.getResponseDto("User record not exist", HttpStatus.NOT_FOUND);
-                return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
-            }
-            UUID managerId = userOptional.get().getManagerId();
+            UUID managerId = userRepo.getManagerId(userId);
             log.info("Fetching manager id:->>{}", managerId);
 
             /**
@@ -83,22 +77,53 @@ public class LeaveServiceImpl implements LeaveService {
                 responseDTO = AppUtils.getResponseDto("Leave payload cannot null", HttpStatus.BAD_REQUEST);
                 return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
             }
+
+            /**
+             * convert start and end dates from strings to local date format
+             */
+            LocalDate startDate = AppUtils.convertStringToLocalDateTime(leavePayload.getStartDate());
+            LocalDate endDate = AppUtils.convertStringToLocalDateTime(leavePayload.getEndDate());
+
+            /**
+             * validating start and end dates
+             */
+            if (startDate.isAfter(endDate)){
+                log.info("Start date: {} cannot be after end date: {}", startDate, endDate);
+                responseDTO = AppUtils.getResponseDto("Start date cannot be after end date", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
+            if (endDate.isBefore(startDate)){
+                log.info("End date: {} cannot be before end date: {}", endDate, startDate);
+                responseDTO = AppUtils.getResponseDto("Start date cannot be after end date", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
+
+            /**
+             * check overlapping
+             */
+            Integer count = leaveRepo.checkOverLapping(userId, startDate, endDate);
+            if (count>0){
+                log.info("Leave already exist for the given start date: {} and end date: {}", startDate, endDate);
+                responseDTO = AppUtils.getResponseDto("Leave already exist the for the given dates", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
+
             log.info("About to save leave record:->>{}", leavePayload);
-            Long leaveCount = ChronoUnit.DAYS.between(
-                    AppUtils.convertStringToLocalDateTime(leavePayload.getStartDate()),
-                    AppUtils.convertStringToLocalDateTime(leavePayload.getEndDate()));
+            Long leaveCount = ChronoUnit.DAYS.between(startDate, endDate);
 
             Leave leave = Leave
                     .builder()
                     .userId(userId)
                     .leaveDays(leaveCount)
                     .status(AppConstants.PENDING_MANAGER_APPROVAL)
-                    .startDate(AppUtils.convertStringToLocalDateTime(leavePayload.getStartDate()))
-                    .endDate(AppUtils.convertStringToLocalDateTime(leavePayload.getEndDate()))
+                    .startDate(startDate)
+                    .endDate(startDate)
                     .managerId(managerId)
                     .leaveNumber("L00000123")
+                    .leaveType(AppConstants.ANNUAL_LEAVE)
                     .build();
-            Leave res = leaveRepo.save(leave);
+//            Leave res = leaveRepo.save(leave);
+            LeavePayload res = leavePayload;
 
             /**
              * notify user and manager
@@ -136,6 +161,7 @@ public class LeaveServiceImpl implements LeaveService {
      * @auther Emmanuel Yidana
      * @createdAt 18th August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'GENERAL_MANAGER','HR')")
     @Override
     public ResponseEntity<ResponseDTO> getLeaves() {
         try {
@@ -229,6 +255,12 @@ public class LeaveServiceImpl implements LeaveService {
             }
 
             /**
+             * convert start and end dates from strings to local date format
+             */
+            LocalDate startDate = AppUtils.convertStringToLocalDateTime(leave.getStartDate());
+            LocalDate endDate = AppUtils.convertStringToLocalDateTime(leave.getEndDate());
+
+            /**
              * check if leave has already been approved either by Manager or HR
              */
             if (
@@ -242,21 +274,12 @@ public class LeaveServiceImpl implements LeaveService {
 
             log.info("About to update leave record");
             Leave existingData = leaveOptional.get();
-
-            existingData.setStartDate(leave.getStartDate()!=null?
-                    AppUtils.convertStringToLocalDateTime(leave.getStartDate())
-                    :existingData.getStartDate());
-
-            existingData.setEndDate(leave.getEndDate()!=null?
-                    AppUtils.convertStringToLocalDateTime(leave.getEndDate())
-                    :existingData.getEndDate());
-
+            existingData.setStartDate(leave.getStartDate()!=null?startDate:existingData.getStartDate());
+            existingData.setEndDate(leave.getEndDate()!=null?endDate:existingData.getEndDate());
             existingData.setLeaveType(leave.getLeaveType()!=null?leave.getLeaveType():existingData.getLeaveType());
 
             if (leave.getStartDate()!=null&&leave.getEndDate()!=null){
-                Long leaveCount = ChronoUnit.DAYS.between(
-                        AppUtils.convertStringToLocalDateTime(leave.getStartDate()),
-                        AppUtils.convertStringToLocalDateTime(leave.getEndDate()));
+                Long leaveCount = ChronoUnit.DAYS.between(startDate, endDate);
                 existingData.setLeaveDays(leaveCount);
             }
             log.info("About to save updated record");
@@ -329,6 +352,7 @@ public class LeaveServiceImpl implements LeaveService {
         try{
             log.info("In approval flow method:->>{}", status);
             ResponseDTO responseDTO;
+            Leave res = null;
 
             /**
              * check if leave record exist
@@ -344,6 +368,7 @@ public class LeaveServiceImpl implements LeaveService {
             if (AppConstants.PENDING_HR_APPROVAL.equalsIgnoreCase(status)){
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.PENDING_HR_APPROVAL);
+                res = leaveRepo.save(existingData);
 
                 /**
                  * notify user and HR
@@ -358,7 +383,6 @@ public class LeaveServiceImpl implements LeaveService {
                         .status(AppConstants.PENDING_HR_APPROVAL)
                         .userId(existingData.getUserId())
                         .build();
-                notificationService.alertUser(leaveDTO);
                 notificationService.alertHR(leaveDTO);
 
             } else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
@@ -371,6 +395,7 @@ public class LeaveServiceImpl implements LeaveService {
                 if (AppConstants.ANNUAL_LEAVE.equalsIgnoreCase(existingData.getLeaveType())){
                     updateLeaveBalance(existingData.getUserId(), existingData.getLeaveDays());
                 }
+                res = leaveRepo.save(existingData);
 
                 /**
                  * notify user
@@ -390,6 +415,7 @@ public class LeaveServiceImpl implements LeaveService {
             } else if (AppConstants.REJECTED.equalsIgnoreCase(status)) {
                 log.info("Leave status changed from {} to {}", leaveOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.REJECTED);
+                res = leaveRepo.save(existingData);
 
                 /**
                  * notify
@@ -409,7 +435,6 @@ public class LeaveServiceImpl implements LeaveService {
             }else {
                 log.info("Status does not exist");
             }
-            Leave res = leaveRepo.save(existingData);
 
             /**
              * return response on success
@@ -484,11 +509,14 @@ public class LeaveServiceImpl implements LeaveService {
             if (AppConstants.MANAGER_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())){
                 log.info("About to load leaves for manager");
                 List<Leave> leavesFromDB = leaveRepo.fetchLeavesForManager(userId);
+                log.info("Leaves from db:->>{}", leavesFromDB);
                 leaves.addAll(leavesFromDB);
 
             } else if (AppConstants.HR_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())) {
+                List<UUID> hrCompaniesIds = userRepo.getHRCompaniesIds(userId);
+                log.info("Fetching HR companies Ids:->>{}", hrCompaniesIds);
                 log.info("About to load leaves for HR");
-                List<Leave> leavesFromDB = leaveRepo.fetchLeavesForHR(userId);
+                List<Leave> leavesFromDB = leaveRepo.fetchLeavesForHR(hrCompaniesIds);
                 leaves.addAll(leavesFromDB);
 
             }else {
@@ -608,7 +636,7 @@ public class LeaveServiceImpl implements LeaveService {
      * A chron job method runs at every 6pm to calculate/update leave balances of all employees
      */
     @Scheduled(cron = "0 0 18 * * 1-5")
-    private void calculateLeaveBalanceDaily(){
+    public void calculateLeaveBalanceDaily(){
         log.info("About to run chron job");
         float balance =  (((float) 15 /365)*1);
         float roundedValue  = AppUtils.roundNumber(balance, 2);

@@ -56,9 +56,19 @@ public class RoleSetupServiceImpl implements RoleSetupService {
               return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
           }
           /**
+           * check if role exist
+           */
+          String role = roleSetupRepo.getRoleSetupByName(roleSetup.getName());
+          if (role!=null){
+              log.error("Role already exist:->>{}", roleSetup.getName());
+              responseDTO = AppUtils.getResponseDto("Role already exist", HttpStatus.ALREADY_REPORTED);
+              return new ResponseEntity<>(responseDTO, HttpStatus.ALREADY_REPORTED);
+          }
+          /**
            * saving record to db and keycloak
            */
           log.info("About to save role to db");
+          roleSetup.setName(roleSetup.getName().toUpperCase());
           RoleSetup roleSetupRes = roleSetupRepo.save(roleSetup);
           log.info("About to save role to keycloak");
           keycloakService.saveRoleToKeycloak(roleSetup);

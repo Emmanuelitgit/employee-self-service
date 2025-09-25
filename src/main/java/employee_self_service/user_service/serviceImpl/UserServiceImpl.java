@@ -111,14 +111,22 @@ public class UserServiceImpl implements UserService {
            /**
             * saving user role, user departments and user companies
             */
-           log.info("About to save user role");
-           saveUserRole(userResponse.getId(), userPayloadDTO.getRole());
-           log.info("About to save user permissions");
-           saveUserPermission(userResponse.getId(),userPayloadDTO.getPermissions());
-           log.info("About to save user companies");
-           saveUserCompanies(userPayloadDTO.getCompanies(), userResponse.getId());
-           log.info("About to save user departments");
-           saveUserDepartments(userPayloadDTO.getDepartments(), userResponse.getId());
+           if (userPayloadDTO.getRole()!=null){
+               log.info("About to save user role");
+               saveUserRole(userResponse.getId(), userPayloadDTO.getRole());
+           }
+           if (!userPayloadDTO.getPermissions().isEmpty()){
+               log.info("About to save user permissions");
+               saveUserPermission(userResponse.getId(),userPayloadDTO.getPermissions());
+           }
+           if (!userPayloadDTO.getCompanies().isEmpty()){
+               log.info("About to save user companies");
+               saveUserCompanies(userPayloadDTO.getCompanies(), userResponse.getId());
+           }
+           if (!userPayloadDTO.getDepartments().isEmpty()){
+               log.info("About to save user departments");
+               saveUserDepartments(userPayloadDTO.getDepartments(), userResponse.getId());
+           }
            if (userPayloadDTO.getLeaveBalance()!=null){
                log.info("About to save user leave balance");
                saveUserLeaveBalance(userPayloadDTO.getLeaveBalance(), userResponse.getId());
@@ -371,11 +379,15 @@ public class UserServiceImpl implements UserService {
                 employees.addAll(employeesFromDb);
             } else if (AppConstants.HR_ROLE.equalsIgnoreCase(userRole)) {
                 log.info("About to fetch employees for HR");
-                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForHR(userId);
+                List<UUID> hrCompaniesIds = userRepo.getHRCompaniesIds(userId);
+                log.info("Fetching HR companies Ids:->>{}",hrCompaniesIds);
+                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForHR(hrCompaniesIds);
                 employees.addAll(employeesFromDb);
             } else if (AppConstants.GENERAL_MANAGER_ROLE.equalsIgnoreCase(userRole)) {
                 log.info("About to fetch employees for GM");
-                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForGM(userId);
+                List<UUID> gmCompaniesIds = userRepo.getGMCompaniesIds(userId);
+                log.info("Fetching GM companies Ids:->>{}",gmCompaniesIds);
+                List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForGM(gmCompaniesIds);
                 employees.addAll(employeesFromDb);
             }else {
                 log.error("User not authorized to this feature:->>{}", userRole);
@@ -411,7 +423,6 @@ public class UserServiceImpl implements UserService {
      * @param departmentIds The ids of departments to be assigned to user
      * @param userId The id of the user
      */
-    @Transactional
     protected void saveUserDepartments(List<UUID> departmentIds, UUID userId){
         /**
          * remove all departments associated with the user if exist
@@ -450,7 +461,6 @@ public class UserServiceImpl implements UserService {
      * @param companiesIds The ids of companies to be assigned to user
      * @param userId The id of the user
      */
-    @Transactional
     protected void saveUserCompanies(List<UUID> companiesIds, UUID userId){
         /**
          * remove all companies associated with the user if exist
@@ -489,7 +499,6 @@ public class UserServiceImpl implements UserService {
      * @param userId The id of the user
      * @param roleId The id of the role to be assigned to user
      */
-    @Transactional
     protected void saveUserRole(UUID userId, UUID roleId) {
         /**
          * checking if selected role exist
@@ -522,7 +531,6 @@ public class UserServiceImpl implements UserService {
      * @param userId The id of the user
      * @param permissionIds The ids of the permissions to be assigned to user
      */
-    @Transactional
     protected void saveUserPermission(UUID userId, List<UUID> permissionIds) {
         /**
          * delete all existing permissions of the user
@@ -556,7 +564,6 @@ public class UserServiceImpl implements UserService {
      * @param leaveBalance The leave balance to be saved
      * @param userId The id of the user
      */
-    @Transactional
     protected void saveUserLeaveBalance(float leaveBalance, UUID userId){
         /**
          * remove the existing record of the user if exist

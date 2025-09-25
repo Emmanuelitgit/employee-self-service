@@ -97,7 +97,6 @@ public class KeycloakService {
          * Search keycloak by user email to get user keycloak id
          */
         List<UserRepresentation> userKeycloakData = realmInstance.users().search(userDto.getEmail(), 0,10);
-        log.info("DATA:->>>>>{}", userKeycloakData.get(0).getId());
         UserResource userResource = realmInstance.users().get(userKeycloakData.get(0).getId());
         UserRepresentation userRepresentation = userResource.toRepresentation();
 
@@ -109,6 +108,8 @@ public class KeycloakService {
         userRepresentation.setLastName(userDto.getLastName());
         userRepresentation.setEmail(userDto.getEmail());
         userRepresentation.setEmailVerified(true);
+        userResource.update(userRepresentation);
+        log.info("User records updated successfully in keycloak");
 
 //        // Update password (optional)
 //        if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
@@ -116,17 +117,11 @@ public class KeycloakService {
 //            userResource.resetPassword(credential);
 //        }
 
-        log.info("user representation:->>>{}", userRepresentation.getEmail()+userRepresentation.getFirstName());
-        // Update user in Keycloak
-        userResource.update(userRepresentation);
-
-        // Get currently assigned roles
+        /**
+         * remove all existing assigned roles of the user and add the updated ones
+         */
         List<RoleRepresentation> currentRoles = userResource.roles().realmLevel().listAll();
-
-        // Remove all current roles
         userResource.roles().realmLevel().remove(currentRoles);
-
-        // Add the new role
         assignRole(userKeycloakData.get(0).getId(), userDto.getRole());
 
         log.info("User {} updated with new role {}", userDto.getUsername(), getRoleName(userDto.getRole()));
@@ -140,13 +135,25 @@ public class KeycloakService {
      * @createdAt 27h May 2025
      */
     public void removeUserFromKeyCloak(String email){
+        /**
+         * validate email
+         */
         if (email ==null){
+            log.error("Email is null to search for user in keycloak");
             throw new BadRequestException("email cannot be null to search for user in keycloak");
         }
+        /**
+         * load user details by email
+         */
         List<UserRepresentation> userRepresentations = realmInstance.users().search(email, 0,10);
-        if (!userRepresentations.isEmpty()){
-            realmInstance.users().get(userRepresentations.get(0).getId()).remove();
+        if (userRepresentations.isEmpty()){
+            log.error("User cannot found in keycloak with the email:->>{}", email);
+            throw new NotFoundException("User not found in keycloak");
         }
+        /**
+         * remove user
+         */
+        realmInstance.users().get(userRepresentations.get(0).getId()).remove();
     }
 
     /**
@@ -186,18 +193,19 @@ public class KeycloakService {
      */
     public void saveRoleToKeycloak(RoleSetup roleSetup){
         List<RoleRepresentation> roleRepresentations = realmInstance.roles().list();
-        // checking if role already exist
+        /**
+         * checking if role already exist
+         */
         roleRepresentations.forEach((role)->{
             if ( roleSetup.getName().equals(role.getName())){
-                throw new NotFoundException("role already exist");
+                throw new NotFoundException("Role already exist");
             }
         });
-
-        // preparing role details to be saved to keycloak
+        /**
+         * preparing role details to be saved to keycloak
+         */
         RoleRepresentation roleRepresentation = new RoleRepresentation();
         roleRepresentation.setName(roleSetup.getName());
-        roleRepresentation.setClientRole(true);
-
         realmInstance.roles().create(roleRepresentation);
     }
 

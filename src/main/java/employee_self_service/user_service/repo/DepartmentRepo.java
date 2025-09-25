@@ -12,16 +12,16 @@ import java.util.UUID;
 @Repository
 public interface DepartmentRepo extends JpaRepository<Department, UUID> {
 
-    @Query(value = "SELECT * FROM department_tbl d " +
+    @Query(value = "SELECT d.* FROM department_tbl d " +
             "JOIN company_setup_tbl c ON d.company_id=c.id " +
-            "WHERE c.hr_id=:hrId ", nativeQuery = true)
-    List<Department> fetchDepartmentsForHR(@Param("hrId") UUID hrId);
+            "WHERE c.id IN (:hrCompaniesIds) ", nativeQuery = true)
+    List<Department> fetchDepartmentsForHR(@Param("hrId") List<UUID> hrCompaniesIds);
 
     @Query(value = "SELECT * FROM department_tbl WHERE manager_id=:managerId", nativeQuery = true)
     List<Department> fetchDepartmentsForManager(@Param("managerId") UUID managerId);
 
-    @Query(value = "SELECT * FROM department_tbl d " +
+    @Query(value = "SELECT d.* FROM department_tbl d " +
             "JOIN company_setup_tbl c ON d.company_id=c.id " +
-            "WHERE c.general_manager_id=:generalManagerId ", nativeQuery = true)
-    List<Department> fetchDepartmentsForGM(@Param("generalManager") UUID generalManager);
+            "WHERE c.id IN (:gmCompaniesIds) ", nativeQuery = true)
+    List<Department> fetchDepartmentsForGM(@Param("gmCompaniesIds") List<UUID> gmCompaniesIds);
 }

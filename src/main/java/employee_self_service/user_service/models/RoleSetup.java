@@ -2,6 +2,7 @@ package employee_self_service.user_service.models;
 
 import employee_self_service.config.AuditorData;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,6 +22,6 @@ public class RoleSetup extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @NotNull(message = "role name cannot be null")
+    @NotBlank(message = "Role annot be null or empty")
     private String name;
 }
