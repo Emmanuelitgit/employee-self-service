@@ -49,4 +49,14 @@ public class PaymentRest {
     public ResponseEntity<Object> getWebhookData(@RequestBody WebHookPayload webHookPayload){
         return paymentService.getWebhookData(webHookPayload);
     }
+
+    @PostMapping("/disburse/loan/{loanId}")
+    public ResponseEntity<ResponseDTO> disburseLoan(@PathVariable UUID loanId){
+        return paymentService.disburseLoan(loanId);
+    }
+
+    @PostMapping("/create-recipient/{userId}")
+    public ResponseEntity<ResponseDTO> createRecipient(@PathVariable UUID userId){
+        return paymentService.createRecipient(userId);
+    }
 }

@@ -24,4 +24,5 @@ public class User extends AuditorData {
     private String username;
     private String password;
     private UUID managerId;
+    private String recipientCode;
 }
