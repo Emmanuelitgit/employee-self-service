@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -16,7 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "loan_tbl", schema = "loan_schema")
 public class Loan extends AuditorData {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -33,4 +31,7 @@ public class Loan extends AuditorData {
     private String reasonForLoan;
     private String paymentStatus;
     private UUID managerId;
+    private String bankAccountNumber;
+    private String bankName;
+    private String bankBranch;
 }

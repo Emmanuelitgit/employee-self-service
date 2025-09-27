@@ -14,8 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,7 +56,9 @@ public class LoanServiceImpl implements LoanService {
             /**
              * retrieve user and manager details
              */
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
             Optional<User> userOptional = userRepo.findById(userId);
             if (userOptional.isEmpty()){
@@ -78,14 +82,19 @@ public class LoanServiceImpl implements LoanService {
             log.info("About to save loan record:->>{}", loanDTO);
             Loan loan = Loan
                     .builder()
-                    .loanType(loanDTO.getLoanType())
+                    .loanType(AppConstants.PERSONAL_LOAN)
                     .status(AppConstants.PENDING_MANAGER_APPROVAL)
                     .userId(userId)
-                    .expectedPaymentDate(AppUtils.convertStringToLocalDateTime(loanDTO.getExpectedPaymentDate()))
+                    .expectedPaymentDate(LocalDate.now().plusMonths(1L))
                     .reasonForLoan(loanDTO.getReasonForLoan())
                     .nextOfKin(loanDTO.getNextOfKin())
-                    .paymentStatus(AppConstants.NOT_PAID)
+                    .paymentStatus(AppConstants.PENDING)
                     .managerId(managerId)
+                    .bankName(loanDTO.getBankName())
+                    .bankBranch(loanDTO.getBankBranch())
+                    .bankAccountNumber(loanDTO.getBankAccountNumber())
+                    .amountToBorrow(loanDTO.getAmountToBorrow())
+                    .amountRemaining(loanDTO.getAmountToBorrow())
                     .build();
             Loan res = loanRepo.save(loan);
 
@@ -109,6 +118,7 @@ public class LoanServiceImpl implements LoanService {
      * @auther Emmanuel Yidana
      * @createdAt 22nd August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @Override
     public ResponseEntity<ResponseDTO> getLoans() {
         try {
@@ -201,12 +211,33 @@ public class LoanServiceImpl implements LoanService {
                 return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
 
+            /**
+             * check if manager has not approved yet
+             */
+            if (!loanOptional.get().getStatus().equalsIgnoreCase(AppConstants.PENDING_MANAGER_APPROVAL)){
+                log.info("Loan record cannot be updated at the moment:->>{}", loanOptional.get().getStatus());
+                responseDTO = AppUtils.getResponseDto("Loan cannot be updated at the moment", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
+
             log.info("About to update loan records");
             Loan existingData = loanOptional.get();
             existingData.setLoanType(loan.getLoanType()!=null?loan.getLoanType(): existingData.getLoanType());
             existingData.setAmountToBorrow(loan.getAmountToBorrow()!=null? loan.getAmountToBorrow() : existingData.getAmountToBorrow());
             existingData.setNextOfKin(loan.getNextOfKin()!=null? loan.getNextOfKin() : existingData.getNextOfKin());
             existingData.setReasonForLoan(loan.getReasonForLoan()!=null? loan.getReasonForLoan() : existingData.getReasonForLoan());
+            existingData.setBankName(loan.getBankName()!=null? loan.getBankName() : existingData.getBankName());
+            existingData.setBankBranch(loan.getBankBranch()!=null? loan.getBankBranch() : existingData.getBankBranch());
+            existingData.setBankAccountNumber(loan.getBankAccountNumber()!=null? loan.getBankAccountNumber() : existingData.getBankAccountNumber());
+            existingData.setAmountRemaining(existingData.getAmountToBorrow());
+            /**
+             * remarks reserved for only accountant
+             */
+            if (appUtils.getAuthenticatedUserRole().equalsIgnoreCase(AppConstants.ACCOUNTANT_ROLE)){
+                if (loan.getRemarks()!=null){
+                    existingData.setRemarks(loan.getRemarks());
+                }
+            }
             Loan res = loanRepo.save(existingData);
 
             /**
@@ -246,6 +277,14 @@ public class LoanServiceImpl implements LoanService {
                 responseDTO = AppUtils.getResponseDto("Loan record not found", HttpStatus.NOT_FOUND);
                 return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
             }
+            /**
+             * check if manager has not approved yet
+             */
+            if (!loanOptional.get().getStatus().equalsIgnoreCase(AppConstants.PENDING_MANAGER_APPROVAL)){
+                log.info("Loan record cannot be removed at the moment:->>{}", loanOptional.get().getStatus());
+                responseDTO = AppUtils.getResponseDto("Loan cannot be removed at the moment", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+            }
             log.info("About to delete leave record");
             loanRepo.deleteById(loanId);
 
@@ -270,6 +309,7 @@ public class LoanServiceImpl implements LoanService {
      * @auther Emmanuel Yidana
      * @createdAt 22nd August 2025
      */
+    @PreAuthorize("hasAnyAuthority('ACCOUNTANT','HR','MANAGER')")
     @Override
     public ResponseEntity<ResponseDTO> approveOrRejectLoan(UUID loanId, String status) {
         try{
@@ -291,7 +331,12 @@ public class LoanServiceImpl implements LoanService {
                 log.info("Loan status changed from {} to {}", loanOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.PENDING_HR_APPROVAL);
 
-            } else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
+            }else if (AppConstants.PENDING_ACCOUNTANT_APPROVAL.equalsIgnoreCase(status)){
+                log.info("Loan status changed from {} to {}", loanOptional.get().getStatus(), status);
+                existingData.setStatus(AppConstants.PENDING_ACCOUNTANT_APPROVAL);
+                existingData.setStatus(AppConstants.PROCESSING);
+
+            }else if (AppConstants.APPROVED.equalsIgnoreCase(status)) {
                 log.info("Loan status changed from {} to {}", loanOptional.get().getStatus(), status);
                 existingData.setStatus(AppConstants.APPROVED);
 
@@ -383,7 +428,9 @@ public class LoanServiceImpl implements LoanService {
             log.info("In fetch loans for logged-in user method");
             ResponseDTO responseDTO;
 
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
 
             /**
@@ -418,13 +465,16 @@ public class LoanServiceImpl implements LoanService {
      * @auther Emmanuel Yidana
      * @createdAt 22nd August 2025
      */
+    @PreAuthorize("hasAnyAuthority('MANAGER','ACCOUNTANT','HR')")
     @Override
     public ResponseEntity<ResponseDTO> fetchLoansForManagerAndHR() {
         try {
             log.info("In fetch loans for manager and HR method");
             ResponseDTO responseDTO;
 
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
 
             /**
@@ -438,7 +488,16 @@ public class LoanServiceImpl implements LoanService {
 
             } else if (AppConstants.HR_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())) {
                 log.info("About to load loans for HR");
-                List<Loan> loansFromDB  = loanRepo.fetchLoansForHR(userId);
+                List<UUID> hrCompaniesIDs = userRepo.getHRCompaniesIds(userId);
+                log.info("Fetching HR companies Ids:->>{}", hrCompaniesIDs);
+                List<Loan> loansFromDB  = loanRepo.fetchLoansForHR(hrCompaniesIDs);
+                loans.addAll(loansFromDB);
+
+            }else if (AppConstants.ACCOUNTANT_ROLE.equalsIgnoreCase(appUtils.getAuthenticatedUserRole())) {
+                log.info("About to load loans for Accountant");
+                List<UUID> accountantCompaniesIds = userRepo.getAccountantCompaniesIds(userId);
+                log.info("Fetching Accountant companies Ids:->>{}", accountantCompaniesIds);
+                List<Loan> loansFromDB  = loanRepo.fetchLoansForAccountant(accountantCompaniesIds);
                 loans.addAll(loansFromDB);
 
             }else {

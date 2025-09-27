@@ -217,7 +217,9 @@ public class DepartmentServiceImpl implements DepartmentService {
             ResponseDTO responseDTO;
             String userRole = appUtils.getAuthenticatedUserRole();
             log.info("Fetching user role from principal:->>{}", userRole);
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal");
 
             /**

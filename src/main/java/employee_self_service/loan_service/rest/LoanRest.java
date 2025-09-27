@@ -24,7 +24,7 @@ public class LoanRest {
     }
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> createLoan(LoanPayload loanDTO){
+    public ResponseEntity<ResponseDTO> createLoan(@RequestBody LoanPayload loanDTO){
         return loanService.createLoan(loanDTO);
     }
 

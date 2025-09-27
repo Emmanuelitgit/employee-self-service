@@ -91,7 +91,6 @@ public class AppUtils {
      * @auther Emmanuel Yidana
      * @createdAt 18h May 2025
      */
-    @Cacheable(cacheNames = "userRole")
     public String getUserRole(String username) {
         String role = userRepo.getUserRole(username);
         log.info("fetched role from db->>>>>");
@@ -151,7 +150,7 @@ public class AppUtils {
      * @auther Emmanuel Yidana
      * @createdAt 19h May 2025
      */
-    public String getAuthenticatedUsername(){
+    public static String getAuthenticatedUsername(){
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
@@ -162,8 +161,9 @@ public class AppUtils {
      * @auther Emmanuel Yidana
      * @createdAt 19h May 2025
      */
-    public String getAuthenticatedUserId(){
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+    @Cacheable(value = "authenticatedUserId", key = "#username")
+    public String getAuthenticatedUserId(String username){
+        log.info("Fetching id from db");
         UUID userId = userRepo.getUserId(username);
         return userId.toString();
     }
@@ -172,7 +172,7 @@ public class AppUtils {
      * This method is used to get authenticated user role.
      * @return role string
      * @auther Emmanuel Yidana
-     * @createdAt 19h May 2025
+     * @createdAt 19th May 2025
      */
     public String getAuthenticatedUserRole(){
         return SecurityContextHolder

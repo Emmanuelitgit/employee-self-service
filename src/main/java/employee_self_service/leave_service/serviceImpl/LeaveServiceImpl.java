@@ -63,7 +63,9 @@ public class LeaveServiceImpl implements LeaveService {
             /**
              * retrieve user and manager details
              */
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
             UUID managerId = userRepo.getManagerId(userId);
             log.info("Fetching manager id:->>{}", managerId);
@@ -464,7 +466,9 @@ public class LeaveServiceImpl implements LeaveService {
              * load leaves from db by user id
              */
             log.info("About to load user leaves from db");
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
             List<Leave> leaves = leaveRepo.fetchLeavesForLoggedInUser(userId);
             if (leaves.isEmpty()){
@@ -499,7 +503,9 @@ public class LeaveServiceImpl implements LeaveService {
             log.info("In fetch leaves for manager and HR method");
             ResponseDTO responseDTO;
 
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal:->>{}", userId);
 
             /**

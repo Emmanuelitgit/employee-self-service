@@ -366,7 +366,9 @@ public class UserServiceImpl implements UserService {
             ResponseDTO responseDTO;
             String userRole = appUtils.getAuthenticatedUserRole();
             log.info("Fetching user role from principal:->>{}", userRole);
-            UUID userId = UUID.fromString(appUtils.getAuthenticatedUserId());
+            String username = appUtils.getAuthenticatedUserId(AppUtils.getAuthenticatedUsername());
+            log.info("Fetching username from principal:->>{}", username);
+            UUID userId = UUID.fromString(username);
             log.info("Fetching user id from principal");
 
             /**
@@ -388,6 +390,10 @@ public class UserServiceImpl implements UserService {
                 List<UUID> gmCompaniesIds = userRepo.getGMCompaniesIds(userId);
                 log.info("Fetching GM companies Ids:->>{}",gmCompaniesIds);
                 List<UserDTOProjection> employeesFromDb = userRepo.fetchEmployeesForGM(gmCompaniesIds);
+                employees.addAll(employeesFromDb);
+            }else if (AppConstants.ADMIN_ROLE.equalsIgnoreCase(userRole)) {
+                log.info("About to fetch employees for ADMIN");
+                List<UserDTOProjection> employeesFromDb = userRepo.getUsersDetails();
                 employees.addAll(employeesFromDb);
             }else {
                 log.error("User not authorized to this feature:->>{}", userRole);

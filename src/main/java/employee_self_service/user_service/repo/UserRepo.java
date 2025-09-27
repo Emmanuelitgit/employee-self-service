@@ -82,6 +82,9 @@ public interface UserRepo extends JpaRepository<User, UUID> {
     @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:gmId ", nativeQuery = true)
     List<UUID> getGMCompaniesIds(@Param("gmId") UUID gmId);
 
+    @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:accountantId ", nativeQuery = true)
+    List<UUID> getAccountantCompaniesIds(@Param("accountantId") UUID accountantId);
+
     @Query(value = "SELECT BIN_TO_UUID(company_id) FROM user_company_tbl where user_id=:employeeId ", nativeQuery = true)
     UUID getEmployeeCompanyId(@Param("employeeId") UUID employeeId);
 

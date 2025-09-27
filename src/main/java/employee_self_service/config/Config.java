@@ -3,6 +3,9 @@ package employee_self_service.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -25,6 +28,7 @@ import java.util.Properties;
 @EnableWebSecurity
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EnableScheduling
+@EnableCaching
 @EnableMethodSecurity(
         securedEnabled = true,
         prePostEnabled = true
@@ -80,5 +84,10 @@ public class Config {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
         return mailSender;
+    }
+
+    @Bean
+    public CacheManager cacheManager() {
+        return new ConcurrentMapCacheManager("authenticatedUserId");
     }
 }
