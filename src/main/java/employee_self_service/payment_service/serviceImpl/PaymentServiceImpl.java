@@ -35,7 +35,7 @@ public class PaymentServiceImpl implements PaymentService {
      * @description Fetches all payments records from the database.
      * @return ResponseEntity containing a list of payments records and status information.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      */
     @Override
     public ResponseEntity<ResponseDTO> findAll() {
@@ -59,7 +59,7 @@ public class PaymentServiceImpl implements PaymentService {
      * @param paymentPayload the payment record to save.
      * @return ResponseEntity containing the saved payment record and status info.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      */
     @Override
     public ResponseEntity<ResponseDTO> makePayment(PaymentPayload paymentPayload) {
@@ -75,7 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
      * @param paymentPayload the updated payment data.
      * @return ResponseEntity containing the updated payment record and status info.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      */
     @Override
     public ResponseEntity<ResponseDTO> updatePayment(UUID paymentId, PaymentPayload paymentPayload) {
@@ -95,7 +95,7 @@ public class PaymentServiceImpl implements PaymentService {
      * @param paymentId the ID of the payment to delete.
      * @return ResponseEntity indicating whether the deletion was successful.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      */
     @Override
     public ResponseEntity<ResponseDTO> removePayment(UUID paymentId) {
@@ -118,7 +118,7 @@ public class PaymentServiceImpl implements PaymentService {
      * @param paymentId the ID of the payment record to retrieve.
      * @return ResponseEntity containing the payment record and status info.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      * */
     @Override
     public ResponseEntity<ResponseDTO> getPaymentById(UUID paymentId) {
@@ -140,18 +140,21 @@ public class PaymentServiceImpl implements PaymentService {
      * @param webHookPayload the object containing the data to be received from payStack.
      * @return ResponseEntity containing the status code of the operation which will serve as acknowledgement of receiving the data.
      * @author Emmanuel Yidana
-     * @createdAt 7th, June 2025
+     * @createdAt 27th, August 2025
      * */
     @Override
     public ResponseEntity<Object> getWebhookData(WebHookPayload webHookPayload) {
         if (webHookPayload != null){
             WebHookPayload.Data data = webHookPayload.getData();
-            // load payment record by reference number
+            /**
+             * load payment record by reference number
+             */
             Optional<Payment> payment = paymentRepo.findByReference(data.getReference());
             if (payment.isPresent() && data.getStatus().equalsIgnoreCase("success")){
                 Payment existingData = payment.get();
-
-                // save updated payment records
+                /**
+                 * save updated payment records
+                 */
                 existingData.setPaymentStatus(AppConstants.PAID);
                 existingData.setTransactionId(data.getId());
                 existingData.setCurrency(data.getCurrency());
