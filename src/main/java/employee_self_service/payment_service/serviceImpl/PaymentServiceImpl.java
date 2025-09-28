@@ -33,8 +33,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final UserRepo userRepo;
     private final RestTemplate restTemplate;
 
-    @Value("${PAYSTACK_RECEPIENT_ENDPOINT}")
-    private String PAYSTACK_RECEPIENT_ENDPOINT;
+    @Value("${PAYSTACK_RECIPIENT_ENDPOINT}")
+    private String PAYSTACK_RECIPIENT_ENDPOINT;
 
     @Value("${PAYSTACK_SECRET}")
     private String PAYSTACK_SECRET;
@@ -191,6 +191,9 @@ public class PaymentServiceImpl implements PaymentService {
             }
             User user = userOptional.get();
 
+            /**
+             * building payload
+             */
             RecipientCreatePayload payload = RecipientCreatePayload
                     .builder()
                     .name(AppUtils.getFullName(user.getFirstName(), user.getLastName()))
@@ -200,13 +203,19 @@ public class PaymentServiceImpl implements PaymentService {
                     .bank_code("MTN")
                     .build();
 
+            /**
+             * headers
+             */
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(PAYSTACK_SECRET);
 
+            /**
+             * request
+             */
             HttpEntity entity = new HttpEntity(payload, headers);
             ResponseEntity<CreateRecipientResponse> response = restTemplate.postForEntity(
-                PAYSTACK_RECEPIENT_ENDPOINT, entity, CreateRecipientResponse.class
+                PAYSTACK_RECIPIENT_ENDPOINT, entity, CreateRecipientResponse.class
             );
 
             CreateRecipientResponse responseBody = response.getBody();
