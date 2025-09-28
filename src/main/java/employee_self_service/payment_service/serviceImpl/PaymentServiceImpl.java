@@ -20,6 +20,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,6 +42,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Value("${PAYSTACK_PAYMENT_TRANSFER_ENDPOINT}")
     private String PAYSTACK_PAYMENT_TRANSFER_ENDPOINT;
+
+    @Value("${PAYSTACK_ACCEPT_PAYMENT_ENDPOINT}")
+    private String PAYSTACK_ACCEPT_PAYMENT_ENDPOINT;
+
+    @Value("${PAYSTACK_VERIFY_ACCOUNT_NUMBER_ENDPOINT}")
+    private String PAYSTACK_VERIFY_ACCOUNT_NUMBER_ENDPOINT;
+
+    @Value("${PAYSTACK_TELECOS_LIST_ENDPOINT}")
+    private String PAYSTACK_TELECOS_LIST_ENDPOINT;
 
     @Autowired
     public PaymentServiceImpl(PaymentRepo paymentRepo, LoanRepo loanRepo, UserRepo userRepo, RestTemplate restTemplate) {
@@ -75,17 +85,70 @@ public class PaymentServiceImpl implements PaymentService {
 
     /**
      * @description Saves a new payment record to the database.
-     * @param paymentPayload the payment record to save.
+     * @param acceptPaymentPayload the payment record to save.
      * @return ResponseEntity containing the saved payment record and status info.
      * @author Emmanuel Yidana
      * @createdAt 27th, August 2025
      */
     @Override
-    public ResponseEntity<ResponseDTO> makePayment(PaymentPayload paymentPayload) {
+    public ResponseEntity<ResponseDTO> acceptPayment(AcceptPaymentPayload acceptPaymentPayload) {
+      try {
+          log.info("In accept payment method");
+          ResponseDTO responseDTO;
 
-        log.info("Payment process initiated successfully:->>>>");
-        ResponseDTO responseDTO = AppUtils.getResponseDto("payment success", HttpStatus.OK);
-        return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+          /**
+           * headers
+           */
+          HttpHeaders headers = new HttpHeaders();
+          headers.setContentType(MediaType.APPLICATION_JSON);
+          headers.setBearerAuth(PAYSTACK_SECRET);
+
+          /**
+           * request
+           */
+          HttpEntity entity = new HttpEntity(acceptPaymentPayload, headers);
+          ResponseEntity<AcceptPaymentResponse> response = restTemplate.postForEntity(
+                  PAYSTACK_ACCEPT_PAYMENT_ENDPOINT, entity, AcceptPaymentResponse.class
+          );
+
+          /**
+           * handles unsuccessfully request
+           */
+          if (!response.getStatusCode().is2xxSuccessful()){
+              log.info("Unexpected error occurred:->>{}", response.getBody().getMessage());
+              responseDTO = AppUtils.getResponseDto("Error occurred", HttpStatus.BAD_REQUEST);
+              return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+          }
+
+          /**
+           * building payload
+           */
+          Payment payment = Payment
+                  .builder()
+                  .paymentDate(LocalDate.now().toString())
+                  .paymentStatus(AppConstants.PENDING)
+                  .amount(acceptPaymentPayload.getAmount())
+                  .paymentType(acceptPaymentPayload.getPaymentType())
+                  .source("EMPLOYEE")
+                  .access_code(response.getBody().getData().getAccess_code())
+                  .reference(response.getBody().getData().getReference())
+                  .authorizationUrl(response.getBody().getData().getAuthorization_url())
+                  .entityId(acceptPaymentPayload.getLoanId())
+                  .build();
+          paymentRepo.save(payment);
+
+          /**
+           * return response on success
+           */
+          log.info("Payment process initiated successfully:->>>>");
+          responseDTO = AppUtils.getResponseDto("payment success", HttpStatus.OK, response.getBody());
+          return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+
+      }catch (Exception e) {
+          log.error("Exception Occurred!, statusCode -> {} and Cause -> {} and Message -> {}", 500, e.getCause(), e.getMessage());
+          ResponseDTO  response = AppUtils.getResponseDto(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+          return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
     }
 
     /**
@@ -113,9 +176,9 @@ public class PaymentServiceImpl implements PaymentService {
         /**
          * load the user details
          */
-        Optional<User> userOptional = userRepo.findById(loan.getId());
+        Optional<User> userOptional = userRepo.findById(loan.getUserId());
         if (userOptional.isEmpty()){
-            log.error("User record cannot be found:->>{}", loan.getId());
+            log.error("User record cannot be found:->>{}", loan.getUserId());
             responseDTO = AppUtils.getResponseDto("User record does not exist", HttpStatus.NOT_FOUND);
             return new ResponseEntity<>(responseDTO, HttpStatus.NOT_FOUND);
         }
@@ -145,26 +208,28 @@ public class PaymentServiceImpl implements PaymentService {
         /**
          * headers
          */
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(PAYSTACK_SECRET);
-        HttpEntity entity = new HttpEntity(payload, headers);
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON);
+//        headers.setBearerAuth(PAYSTACK_SECRET);
+//        HttpEntity entity = new HttpEntity(payload, headers);
 
         /**
          * request
          */
-       ResponseEntity<Object> response = restTemplate.postForEntity(PAYSTACK_PAYMENT_TRANSFER_ENDPOINT, entity, Object.class);
-       if (!response.getStatusCode().is2xxSuccessful()){
-           log.error("Unexpected error occurs");
-           responseDTO = AppUtils.getResponseDto("Transfer fails", HttpStatus.BAD_REQUEST);
-           return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
-       }
+//       ResponseEntity<Object> response = restTemplate.postForEntity(PAYSTACK_PAYMENT_TRANSFER_ENDPOINT, entity, Object.class);
+//       if (!response.getStatusCode().is2xxSuccessful()){
+//           log.error("Unexpected error occurs");
+//           responseDTO = AppUtils.getResponseDto("Transfer fails", HttpStatus.BAD_REQUEST);
+//           return new ResponseEntity<>(responseDTO, HttpStatus.BAD_REQUEST);
+//       }
 
+        loan.setStatus(AppConstants.DISBURSED);
+        Loan res = loanRepo.save(loan);
         /**
          * return response on success
          */
-        log.info("Transfer process initiated successfully:->>");
-        responseDTO = AppUtils.getResponseDto("payment success", HttpStatus.OK, response.getBody());
+        log.info("Loan disbursed successfully:->>{}", res);
+        responseDTO = AppUtils.getResponseDto("Loan disbursed successfully", HttpStatus.OK, res);
         return new ResponseEntity<>(responseDTO, HttpStatus.OK);
     }
 
@@ -210,6 +275,8 @@ public class PaymentServiceImpl implements PaymentService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(PAYSTACK_SECRET);
 
+            log.info("Authorization header: {}", headers.getFirst(HttpHeaders.AUTHORIZATION));
+
             /**
              * request
              */
@@ -244,13 +311,13 @@ public class PaymentServiceImpl implements PaymentService {
     /**
      * @description Updates an existing booking record identified by ID.
      * @param paymentId the ID of the booking to update.
-     * @param paymentPayload the updated payment data.
+     * @param acceptPaymentPayload the updated payment data.
      * @return ResponseEntity containing the updated payment record and status info.
      * @author Emmanuel Yidana
      * @createdAt 27th, September 2025
      */
     @Override
-    public ResponseEntity<ResponseDTO> updatePayment(UUID paymentId, PaymentPayload paymentPayload) {
+    public ResponseEntity<ResponseDTO> updatePayment(UUID paymentId, AcceptPaymentPayload acceptPaymentPayload) {
         try{
 
             ResponseDTO responseDTO = AppUtils.getResponseDto("payment record updated", HttpStatus.OK);
@@ -333,6 +400,28 @@ public class PaymentServiceImpl implements PaymentService {
                 existingData.setChannel(data.getChannel());
                 existingData.setPaymentDate(data.getPaid_at());
                 paymentRepo.save(existingData);
+
+                /**
+                 * load entity(loan) records
+                 */
+                Optional<Loan> loanOptional = loanRepo.findById(existingData.getEntityId());
+                if (loanOptional.isEmpty()){
+                    log.error("Loan record not found:->>{}", existingData.getEntityId());
+                    throw new NotFoundException("Loan record not found");
+                }
+                Loan loan = loanOptional.get();
+
+                /**
+                 * update loan status
+                 */
+                if (loan.getAmountToBorrow() >= existingData.getAmount()){
+                    loan.setPaymentStatus(AppConstants.PAID);
+                }else if (existingData.getAmount() >= loan.getAmountToBorrow()/2){
+                    loan.setPaymentStatus(AppConstants.HALF_PAID);
+                }else {
+                    loan.setPaymentStatus(AppConstants.PARTIALLY_PAID);
+                }
+                loanRepo.save(loan);
 
                 return new ResponseEntity<>(HttpStatus.OK);
             }

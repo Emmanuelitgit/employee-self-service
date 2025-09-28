@@ -1,6 +1,6 @@
 package employee_self_service.payment_service.rest;
 
-import employee_self_service.payment_service.dto.PaymentPayload;
+import employee_self_service.payment_service.dto.AcceptPaymentPayload;
 import employee_self_service.payment_service.dto.WebHookPayload;
 import employee_self_service.payment_service.serviceImpl.PaymentServiceImpl;
 import employee_self_service.user_service.dto.ResponseDTO;
@@ -27,13 +27,13 @@ public class PaymentRest {
     }
 
     @PostMapping
-    public ResponseEntity<ResponseDTO> makePayment(@RequestBody PaymentPayload paymentPayload){
-        return paymentService.makePayment(paymentPayload);
+    public ResponseEntity<ResponseDTO> makePayment(@RequestBody AcceptPaymentPayload acceptPaymentPayload){
+        return paymentService.acceptPayment(acceptPaymentPayload);
     }
 
     @PutMapping("/{paymentId}")
-    public ResponseEntity<ResponseDTO> updatePayment(@PathVariable UUID paymentId,  @RequestBody PaymentPayload paymentPayload){
-        return paymentService.updatePayment(paymentId, paymentPayload);
+    public ResponseEntity<ResponseDTO> updatePayment(@PathVariable UUID paymentId,  @RequestBody AcceptPaymentPayload acceptPaymentPayload){
+        return paymentService.updatePayment(paymentId, acceptPaymentPayload);
     }
 
     @GetMapping("/{paymentId}")

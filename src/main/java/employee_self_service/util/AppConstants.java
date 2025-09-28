@@ -43,6 +43,8 @@ public interface AppConstants {
 
     public final String PAID = "PAID";
 
+    public final String HALF_PAID = "HALF_PAID";
+
     public final String PARTIALLY_PAID = "PARTIALLY_PAID";
 
     public final String DISBURSED = "DISBURSED";

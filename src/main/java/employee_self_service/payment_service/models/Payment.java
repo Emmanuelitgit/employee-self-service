@@ -16,8 +16,8 @@ public class Payment extends AuditorData {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    private UUID bookingId;
-    private Float amount;
+    private UUID entityId;
+    private Double amount;
     private Long transactionId;
     private String paymentStatus;
     private String access_code;
@@ -26,4 +26,6 @@ public class Payment extends AuditorData {
     private String channel;
     private String paymentDate;
     private String paymentType; // loan, salary;
+    private String source; // ESS, employee
+    private String authorizationUrl;
 }
