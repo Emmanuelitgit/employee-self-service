@@ -49,10 +49,11 @@ public class Config {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        return httpSecurity.authorizeHttpRequests((auth)->{
-            auth.requestMatchers("/swagger-ui/*");
-            auth.anyRequest().permitAll();
-        })
+        return httpSecurity
+                .authorizeHttpRequests((auth)->{
+                auth.requestMatchers("/swagger-ui/*");
+                auth.anyRequest().permitAll();
+                })
                 .csrf((AbstractHttpConfigurer::disable))
                 .cors((AbstractHttpConfigurer::disable))
                 .oauth2ResourceServer((auth->{

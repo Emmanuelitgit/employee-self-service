@@ -144,7 +144,7 @@ public class UserServiceImpl implements UserService {
                roleName = roleSetupRepo.findById(userPayloadDTO.getRole())
                        .orElseThrow(()->new NotFoundException("Role record not found")).getName();
            }
-           UserDTO userDTO = DTOMapper.toUserDTO(userResponse, roleName);
+           UserDTO userDTO = dtoMapper.toUserDTO(userResponse, roleName);
            log.info("User created successfully:->>{}", userResponse);
            ResponseDTO  response = AppUtils.getResponseDto("User record added successfully", HttpStatus.CREATED, userDTO);
            return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -291,7 +291,7 @@ public class UserServiceImpl implements UserService {
                 roleName = roleSetupRepo.findById(userPayload.getRole())
                         .orElseThrow(()->new NotFoundException("Role record not found")).getName();
             }
-            UserDTO userDTOResponse = DTOMapper.toUserDTO(userResponse, roleName);
+            UserDTO userDTOResponse = dtoMapper.toUserDTO(userResponse, roleName);
             log.info("User updated successfully:->>{}", userResponse);
             ResponseDTO  response = AppUtils.getResponseDto("User records updated successfully", HttpStatus.OK, userDTOResponse);
             return new ResponseEntity<>(response, HttpStatus.OK);

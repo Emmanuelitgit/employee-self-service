@@ -1,7 +1,10 @@
 package employee_self_service.user_service.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,6 +12,9 @@ import java.util.UUID;
 
 @Component
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class UpdateUserPayload {
     private UUID id;
     private String firstName;

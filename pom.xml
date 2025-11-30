@@ -8,11 +8,11 @@
 		<version>3.4.1</version>
 		<relativePath/>
 	</parent>
-	<groupId>com.user-service</groupId>
-	<artifactId>user-service</artifactId>
+	<groupId>com.employee-self-service</groupId>
+	<artifactId>employee-self-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>user-service</name>
-	<description>user-service application</description>
+	<description>employee-self-service application</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -157,6 +157,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+			<version>4.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.modelmapper</groupId>

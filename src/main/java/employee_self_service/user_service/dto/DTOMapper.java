@@ -6,8 +6,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class DTOMapper {
 
-    /* this method takes user object and transform it to userDTO*/
-    public static UserDTO toUserDTO(User user, String role){
+    /**
+     * @description  this method takes user object and transform it to userDTO object
+     * @param user the user object to be transformed
+     * @param role the role name to be added to the user response
+     * @return
+     */
+    public UserDTO toUserDTO(User user, String role){
        return UserDTO
                 .builder()
                 .id(user.getId())
